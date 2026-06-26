@@ -1,0 +1,1 @@
+"use strict";exports.pickLatestActiveSharedBook=function(t){const e=(t||[]).filter((t=>t&&1!==t.status));return 0===e.length?null:e.sort(((t,e)=>{const r=new Date(t.createdAt||0).getTime();return new Date(e.createdAt||0).getTime()-r}))[0]};

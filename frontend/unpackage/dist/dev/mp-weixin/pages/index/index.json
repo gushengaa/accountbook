@@ -1,0 +1,11 @@
+{
+  "navigationBarTitleText": "首页",
+  "navigationBarBackgroundColor": "#F5A623",
+  "navigationBarTextStyle": "white",
+  "enablePullDownRefresh": true,
+  "usingComponents": {
+    "transaction-detail": "../../components/transaction-detail/transaction-detail",
+    "app-icon": "../../components/app-icon/app-icon",
+    "app-tab-bar": "../../components/app-tab-bar/app-tab-bar"
+  }
+}

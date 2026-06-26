@@ -1,0 +1,186 @@
+/**
+ * 全局样式变量 - 方案 3：琥珀暖阳
+ */
+/* 颜色变量 */
+/* 文字颜色 */
+/* 背景颜色 */
+/* 边框颜色 */
+/* 字体大小 */
+/* 圆角 */
+/* 间距 */
+.shared-account-books-container.data-v-bb8953bd {
+  padding: 24rpx;
+  background: #F5F5F5;
+  min-height: 100vh;
+  padding-bottom: 160rpx;
+}
+.create-btn.data-v-bb8953bd, .join-btn.data-v-bb8953bd {
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+.create-btn .create-icon.data-v-bb8953bd, .create-btn .join-icon.data-v-bb8953bd, .join-btn .create-icon.data-v-bb8953bd, .join-btn .join-icon.data-v-bb8953bd {
+  font-size: 48rpx;
+  margin-right: 24rpx;
+}
+.create-btn .create-text.data-v-bb8953bd, .create-btn .join-text.data-v-bb8953bd, .join-btn .create-text.data-v-bb8953bd, .join-btn .join-text.data-v-bb8953bd {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333333;
+}
+.create-btn.data-v-bb8953bd {
+  background: linear-gradient(135deg, #F5A623 0%, #F7B84D 100%);
+  color: #FFFFFF;
+}
+.create-btn .create-text.data-v-bb8953bd {
+  color: #FFFFFF;
+}
+.shared-account-books-list .shared-account-book-item.data-v-bb8953bd {
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+.shared-account-books-list .shared-account-book-item .book-header.data-v-bb8953bd {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+.shared-account-books-list .shared-account-book-item .book-header .book-name.data-v-bb8953bd {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333333;
+  flex: 1;
+}
+.shared-account-books-list .shared-account-book-item .book-header .status-badge.data-v-bb8953bd {
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+.shared-account-books-list .shared-account-book-item .book-header .status-badge.active.data-v-bb8953bd {
+  background: #F5A623;
+  color: #FFFFFF;
+}
+.shared-account-books-list .shared-account-book-item .book-header .status-badge.ended.data-v-bb8953bd {
+  background: #999999;
+  color: #FFFFFF;
+}
+.shared-account-books-list .shared-account-book-item .book-description.data-v-bb8953bd {
+  font-size: 24rpx;
+  color: #999999;
+  margin-bottom: 16rpx;
+  display: block;
+}
+.shared-account-books-list .shared-account-book-item .book-info.data-v-bb8953bd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24rpx;
+  margin-bottom: 16rpx;
+}
+.shared-account-books-list .shared-account-book-item .book-info .info-item.data-v-bb8953bd {
+  font-size: 24rpx;
+  color: #666666;
+}
+.shared-account-books-list .shared-account-book-item .book-footer.data-v-bb8953bd {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #F5F5F5;
+}
+.shared-account-books-list .shared-account-book-item .book-footer .share-code.data-v-bb8953bd {
+  font-size: 24rpx;
+  color: #F5A623;
+  font-weight: bold;
+}
+.shared-account-books-list .shared-account-book-item .book-footer .book-date.data-v-bb8953bd {
+  font-size: 24rpx;
+  color: #CCCCCC;
+}
+.shared-account-books-list .empty-state.data-v-bb8953bd {
+  text-align: center;
+  padding: 120rpx 0;
+}
+.shared-account-books-list .empty-state .empty-text.data-v-bb8953bd {
+  font-size: 28rpx;
+  color: #999999;
+  margin-bottom: 16rpx;
+  display: block;
+}
+.shared-account-books-list .empty-state .empty-hint.data-v-bb8953bd {
+  font-size: 24rpx;
+  color: #CCCCCC;
+}
+.dialog-mask.data-v-bb8953bd {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+.dialog-content.data-v-bb8953bd {
+  width: 600rpx;
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+.dialog-content .dialog-header.data-v-bb8953bd {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32rpx;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+.dialog-content .dialog-header .dialog-title.data-v-bb8953bd {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333333;
+}
+.dialog-content .dialog-header .dialog-close.data-v-bb8953bd {
+  font-size: 48rpx;
+  color: #999999;
+  line-height: 1;
+}
+.dialog-content .dialog-body.data-v-bb8953bd {
+  padding: 32rpx;
+}
+.dialog-content .dialog-body .dialog-input.data-v-bb8953bd {
+  width: 100%;
+  background: #F5F5F5;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  font-size: 32rpx;
+  text-align: center;
+  letter-spacing: 8rpx;
+  border: none;
+}
+.dialog-content .dialog-footer.data-v-bb8953bd {
+  display: flex;
+  border-top: 1rpx solid #F5F5F5;
+}
+.dialog-content .dialog-footer .dialog-btn.data-v-bb8953bd {
+  flex: 1;
+  height: 96rpx;
+  border: none;
+  font-size: 28rpx;
+}
+.dialog-content .dialog-footer .dialog-btn.cancel.data-v-bb8953bd {
+  background: #F5F5F5;
+  color: #333333;
+  border-right: 1rpx solid #F5F5F5;
+}
+.dialog-content .dialog-footer .dialog-btn.confirm.data-v-bb8953bd {
+  background: linear-gradient(135deg, #F5A623 0%, #F7B84D 100%);
+  color: #FFFFFF;
+}

@@ -1,0 +1,1 @@
+{"version":3,"file":"tabBar.js","sources":["utils/tabBar.js"],"sourcesContent":["/** 隐藏微信原生 tabBar，使用自定义底部导航 */\r\nexport function hideNativeTabBar() {\r\n  uni.hideTabBar({\r\n    animation: false,\r\n    fail: () => {}\r\n  });\r\n}\r\n"],"names":["uni"],"mappings":";;AACO,SAAS,mBAAmB;AACjCA,gBAAAA,MAAI,WAAW;AAAA,IACb,WAAW;AAAA,IACX,MAAM,MAAM;AAAA,IAAE;AAAA,EAClB,CAAG;AACH;;"}

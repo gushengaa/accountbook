@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "交易类别管理",
+  "navigationBarBackgroundColor": "#F5A623",
+  "navigationBarTextStyle": "white",
+  "usingComponents": {
+    "app-icon": "../../components/app-icon/app-icon"
+  }
+}

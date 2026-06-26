@@ -1,0 +1,1 @@
+"use strict";const e=require("../../common/vendor.js"),t={onLoad(){e.index.setNavigationBarTitle({title:"隐私政策"})}};const n=e._export_sfc(t,[["render",function(e,t,n,o,r,d){return{}}],["__scopeId","data-v-ed3d5d94"]]);wx.createPage(n);

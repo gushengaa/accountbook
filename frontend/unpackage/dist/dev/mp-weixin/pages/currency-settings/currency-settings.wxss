@@ -1,0 +1,175 @@
+/**
+ * 全局样式变量 - 方案 3：琥珀暖阳
+ */
+/* 颜色变量 */
+/* 文字颜色 */
+/* 背景颜色 */
+/* 边框颜色 */
+/* 字体大小 */
+/* 圆角 */
+/* 间距 */
+.currency-settings-container.data-v-4db0c842 {
+  min-height: 100vh;
+  background: #F5F6F8;
+  padding: 20rpx;
+  box-sizing: border-box;
+}
+.loading-section.data-v-4db0c842 {
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 60rpx;
+  text-align: center;
+  margin-bottom: 20rpx;
+}
+.loading-section .loading-text.data-v-4db0c842 {
+  font-size: 28rpx;
+  color: #999999;
+}
+.empty-section.data-v-4db0c842 {
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 60rpx;
+  text-align: center;
+  margin-bottom: 20rpx;
+}
+.empty-section .empty-text.data-v-4db0c842 {
+  font-size: 28rpx;
+  color: #999999;
+  display: block;
+  margin-bottom: 20rpx;
+}
+.empty-section .debug-text.data-v-4db0c842 {
+  font-size: 20rpx;
+  color: #F5A623;
+  display: block;
+  word-break: break-all;
+  text-align: left;
+  padding: 20rpx;
+  background: #FFF5F5;
+  border-radius: 8rpx;
+}
+.header.data-v-4db0c842 {
+  background: linear-gradient(135deg, #F5A623 0%, #F7B84D 100%);
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+.header .title.data-v-4db0c842 {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #FFFFFF;
+  display: block;
+  margin-bottom: 10rpx;
+}
+.header .subtitle.data-v-4db0c842 {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.8);
+}
+.currency-list.data-v-4db0c842 {
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  overflow: hidden;
+  margin-bottom: 20rpx;
+}
+.currency-list .currency-item.data-v-4db0c842 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 20rpx;
+  border-bottom: 1rpx solid #F0F0F0;
+}
+.currency-list .currency-item.data-v-4db0c842:last-child {
+  border-bottom: none;
+}
+.currency-list .currency-item.disabled.data-v-4db0c842 {
+  opacity: 0.5;
+}
+.currency-list .currency-item .currency-info.data-v-4db0c842 {
+  flex: 1;
+}
+.currency-list .currency-item .currency-info .currency-header.data-v-4db0c842 {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+.currency-list .currency-item .currency-info .currency-header .currency-symbol.data-v-4db0c842 {
+  font-size: 32rpx;
+  margin-right: 12rpx;
+  color: #F5A623;
+  font-weight: bold;
+}
+.currency-list .currency-item .currency-info .currency-header .currency-name.data-v-4db0c842 {
+  font-size: 28rpx;
+  color: #333333;
+  font-weight: 500;
+  margin-right: 12rpx;
+}
+.currency-list .currency-item .currency-info .currency-header .currency-code.data-v-4db0c842 {
+  font-size: 24rpx;
+  color: #999999;
+  background: #F5F5F5;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+.currency-list .currency-item .currency-info .rate-row.data-v-4db0c842 {
+  display: flex;
+  align-items: center;
+}
+.currency-list .currency-item .currency-info .rate-row .rate-label.data-v-4db0c842 {
+  font-size: 24rpx;
+  color: #666666;
+  margin-right: 10rpx;
+}
+.currency-list .currency-item .currency-info .rate-row .rate-input.data-v-4db0c842 {
+  width: 160rpx;
+  height: 56rpx;
+  background: #F5F5F5;
+  border-radius: 8rpx;
+  padding: 0 16rpx;
+  font-size: 28rpx;
+  color: #333333;
+  text-align: center;
+}
+.currency-list .currency-item .currency-info .rate-row .rate-unit.data-v-4db0c842 {
+  font-size: 24rpx;
+  color: #F7B84D;
+  margin-left: 10rpx;
+  font-weight: 500;
+}
+.currency-list .currency-item .currency-toggle.data-v-4db0c842 {
+  margin-left: 20rpx;
+}
+.save-section.data-v-4db0c842 {
+  padding: 20rpx 0;
+}
+.save-section .save-btn.data-v-4db0c842 {
+  width: 100%;
+  height: 88rpx;
+  background: linear-gradient(135deg, #F5A623 0%, #F7B84D 100%);
+  border-radius: 44rpx;
+  color: #FFFFFF;
+  font-size: 32rpx;
+  font-weight: bold;
+  border: none;
+}
+.save-section .save-btn.data-v-4db0c842:active {
+  opacity: 0.9;
+}
+.tips-section.data-v-4db0c842 {
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 24rpx;
+}
+.tips-section .tips-title.data-v-4db0c842 {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333333;
+  display: block;
+  margin-bottom: 16rpx;
+}
+.tips-section .tips-item.data-v-4db0c842 {
+  font-size: 24rpx;
+  color: #999999;
+  display: block;
+  line-height: 40rpx;
+}

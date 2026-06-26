@@ -1,0 +1,220 @@
+/**
+ * 全局样式变量 - 方案 3：琥珀暖阳
+ */
+/* 颜色变量 */
+/* 文字颜色 */
+/* 背景颜色 */
+/* 边框颜色 */
+/* 字体大小 */
+/* 圆角 */
+/* 间距 */
+.page.data-v-d293a13f {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 160rpx;
+}
+.header.data-v-d293a13f {
+  padding: 24rpx 32rpx 8rpx;
+}
+.header .subtitle.data-v-d293a13f {
+  font-size: 24rpx;
+  color: #888;
+  line-height: 1.5;
+}
+.loading-wrap.data-v-d293a13f {
+  padding: 80rpx 0;
+  text-align: center;
+}
+.loading-wrap .loading-text.data-v-d293a13f {
+  font-size: 28rpx;
+  color: #999;
+}
+.scroll.data-v-d293a13f {
+  max-height: calc(100vh - 220rpx);
+  padding: 16rpx 24rpx 0;
+  box-sizing: border-box;
+}
+.row.data-v-d293a13f {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx 16rpx;
+  margin-bottom: 16rpx;
+}
+.sort-actions.data-v-d293a13f {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  flex-shrink: 0;
+}
+.sort-btn.data-v-d293a13f {
+  width: 40rpx;
+  height: 40rpx;
+  line-height: 40rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: #F5A623;
+  background: #FFF8EB;
+  border-radius: 8rpx;
+}
+.sort-btn.disabled.data-v-d293a13f {
+  color: #ccc;
+  background: #f5f5f5;
+}
+.row-icon.data-v-d293a13f {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.row-main.data-v-d293a13f {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8rpx;
+}
+.row-name.data-v-d293a13f {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+.row-meta.data-v-d293a13f {
+  font-size: 22rpx;
+  color: #999;
+}
+.badge.used.data-v-d293a13f {
+  font-size: 20rpx;
+  color: #F5A623;
+  background: rgba(245, 166, 35, 0.12);
+  padding: 2rpx 10rpx;
+  border-radius: 8rpx;
+}
+.link-btn.data-v-d293a13f {
+  font-size: 24rpx;
+  color: #F5A623;
+  flex-shrink: 0;
+  padding: 0 4rpx;
+}
+.link-btn.danger.data-v-d293a13f {
+  color: #e74c3c;
+}
+.tips.data-v-d293a13f {
+  padding: 8rpx 8rpx 24rpx;
+}
+.tips .tips-line.data-v-d293a13f {
+  display: block;
+  font-size: 22rpx;
+  color: #999;
+  line-height: 1.6;
+}
+.footer-btn-wrap.data-v-d293a13f {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  background: #fff;
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.06);
+}
+.add-btn.data-v-d293a13f {
+  background: linear-gradient(135deg, #F5A623 0%, #F7B84D 100%);
+  color: #fff;
+  border: none;
+  border-radius: 44rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+}
+.mask.data-v-d293a13f {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+}
+.sheet.data-v-d293a13f {
+  width: 100%;
+  max-height: 80vh;
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  display: flex;
+  flex-direction: column;
+}
+.sheet-head.data-v-d293a13f {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 32rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+.sheet-title.data-v-d293a13f {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+.sheet-close.data-v-d293a13f {
+  font-size: 44rpx;
+  color: #999;
+  line-height: 1;
+}
+.sheet-scroll.data-v-d293a13f {
+  flex: 1;
+  min-height: 0;
+  padding: 16rpx 32rpx 0;
+  box-sizing: border-box;
+}
+.field.data-v-d293a13f {
+  margin-bottom: 24rpx;
+}
+.field .label.data-v-d293a13f {
+  display: block;
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 10rpx;
+}
+.field .input.data-v-d293a13f {
+  width: 100%;
+  height: 80rpx;
+  background: #f5f5f5;
+  border-radius: 12rpx;
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+.field.row-between.data-v-d293a13f {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.field.row-between .label.data-v-d293a13f {
+  margin-bottom: 0;
+}
+.sheet-scroll-pad.data-v-d293a13f {
+  height: 24rpx;
+}
+.sheet-footer.data-v-d293a13f {
+  padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid #f0f0f0;
+}
+.save-sheet.data-v-d293a13f {
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  background: linear-gradient(135deg, #F5A623 0%, #F7B84D 100%);
+  color: #fff;
+  border-radius: 44rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+}
+.save-sheet--loading.data-v-d293a13f {
+  opacity: 0.7;
+}

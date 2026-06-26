@@ -1,0 +1,64 @@
+/**
+ * 全局样式变量 - 方案 3：琥珀暖阳
+ */
+/* 颜色变量 */
+/* 文字颜色 */
+/* 背景颜色 */
+/* 边框颜色 */
+/* 字体大小 */
+/* 圆角 */
+/* 间距 */
+.policy-container.data-v-df882951 {
+  min-height: 100vh;
+  background: #F5F5F5;
+  display: flex;
+  flex-direction: column;
+}
+.header.data-v-df882951 {
+  background: #FFFFFF;
+  padding: 32rpx;
+  border-bottom: 1px solid #E5E5E5;
+}
+.header .title.data-v-df882951 {
+  display: block;
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #333333;
+  margin-bottom: 16rpx;
+}
+.header .update-time.data-v-df882951 {
+  display: block;
+  font-size: 24rpx;
+  color: #999999;
+}
+.content.data-v-df882951 {
+  flex: 1;
+  padding: 32rpx;
+}
+.section.data-v-df882951 {
+  margin-bottom: 48rpx;
+}
+.section .section-title.data-v-df882951 {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333333;
+  margin-bottom: 24rpx;
+  line-height: 1.5;
+}
+.section .section-content.data-v-df882951 {
+  display: block;
+  font-size: 28rpx;
+  color: #666666;
+  line-height: 1.8;
+  margin-bottom: 16rpx;
+  text-align: justify;
+}
+.footer.data-v-df882951 {
+  text-align: center;
+  padding: 48rpx 0;
+}
+.footer .footer-text.data-v-df882951 {
+  font-size: 28rpx;
+  color: #999999;
+}
