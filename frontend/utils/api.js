@@ -2,62 +2,84 @@
  * API 请求封装
  */
 
-//const BASE_URL = 'http://localhost:5000/api'; // 开发环境，生产环境需要修改
-const BASE_URL = 'https://www.planor.cn/accountbook/api'; // 生产环境
+const BASE_URL = 'https://www.planor.cn/accountbook/api';
+const MAX_RETRIES = 1;
+const RETRY_DELAY_MS = 500;
+
 function getToken() {
   return uni.getStorageSync('token') || '';
 }
 
-// 设置 Token
 function setToken(token) {
   uni.setStorageSync('token', token);
 }
 
-// 清除 Token 
 function clearToken() {
   uni.removeStorageSync('token');
   uni.removeStorageSync('userInfo');
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function shouldRetry(method, statusCode) {
+  const m = (method || 'GET').toUpperCase();
+  if (m !== 'GET' && m !== 'HEAD') return false;
+  if (!statusCode) return true;
+  return statusCode >= 500;
+}
+
 /**
- * 请求封装
+ * 请求封装（GET 网络错误自动重试 1 次）
  */
-function request(options) {
+function request(options, retryCount = 0) {
   return new Promise((resolve, reject) => {
     const token = getToken();
-    
+    const method = options.method || 'GET';
+
     uni.request({
       url: BASE_URL + options.url,
-      method: options.method || 'GET',
+      method,
       data: options.data || {},
       header: {
         'Content-Type': 'application/json',
         'Authorization': token ? `Bearer ${token}` : '',
         ...options.header
       },
-      success: (res) => {
+      success: async (res) => {
         if (res.statusCode === 200 || res.statusCode === 201 || res.statusCode === 204) {
-          // 200 OK、201 Created 或 204 No Content 都视为成功
           resolve(res.data || null);
         } else if (res.statusCode === 401) {
           clearToken();
           uni.setStorageSync('isGuestMode', true);
           reject(new Error('登录已过期，请重新登录'));
+        } else if (shouldRetry(method, res.statusCode) && retryCount < MAX_RETRIES) {
+          await sleep(RETRY_DELAY_MS * (retryCount + 1));
+          try {
+            resolve(await request(options, retryCount + 1));
+          } catch (err) {
+            reject(err);
+          }
         } else {
           const errorMsg = res.data?.message || '请求失败';
-          uni.showToast({
-            title: errorMsg,
-            icon: 'none'
-          });
+          uni.showToast({ title: errorMsg, icon: 'none' });
           reject(new Error(errorMsg));
         }
       },
-      fail: (err) => {
-        uni.showToast({
-          title: '网络请求失败',
-          icon: 'none'
-        });
-        reject(err);
+      fail: async (err) => {
+        if (shouldRetry(method) && retryCount < MAX_RETRIES) {
+          await sleep(RETRY_DELAY_MS * (retryCount + 1));
+          try {
+            resolve(await request(options, retryCount + 1));
+          } catch (retryErr) {
+            uni.showToast({ title: '网络请求失败', icon: 'none' });
+            reject(retryErr);
+          }
+        } else {
+          uni.showToast({ title: '网络请求失败', icon: 'none' });
+          reject(err);
+        }
       }
     });
   });
@@ -550,6 +572,19 @@ export const api = {
         url: '/aitransaction/recognize-voice',
         method: 'POST',
         data
+      });
+    },
+    submitVoiceRecognitionAsync(data) {
+      return request({
+        url: '/aitransaction/recognize-voice/async',
+        method: 'POST',
+        data
+      });
+    },
+    getRecognitionTask(taskId) {
+      return request({
+        url: `/aitransaction/tasks/${taskId}`,
+        method: 'GET'
       });
     }
   },

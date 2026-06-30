@@ -1,0 +1,38 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: accountbook-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      PathBase: /accountbook
+      UseHttpsRedirection: "false"
+      Database__RunMigrationsOnStartup: "false"
+      ConnectionStrings__DefaultConnection: ${DB_CONNECTION}
+      ConnectionStrings__ReadOnlyConnection: ${DB_READ_CONNECTION:-}
+      ConnectionStrings__Redis: ${REDIS_CONNECTION:-}
+      Jwt__Key: ${JWT_KEY}
+      Jwt__Issuer: AccountBook
+      Jwt__Audience: AccountBook
+      WeChat__AppId: ${WECHAT_APP_ID}
+      WeChat__AppSecret: ${WECHAT_APP_SECRET}
+      WeChat__token: ${WECHAT_TOKEN}
+      WeChat__EnableContentSecurity: ${WECHAT_ENABLE_CONTENT_SECURITY:-true}
+      AliyunOSS__AccessKeyId: ${OSS_ACCESS_KEY_ID}
+      AliyunOSS__AccessKeySecret: ${OSS_ACCESS_KEY_SECRET}
+      AliyunOSS__Endpoint: ${OSS_ENDPOINT:-https://oss-cn-shanghai.aliyuncs.com}
+      AliyunOSS__BucketName: ${OSS_BUCKET_NAME}
+      AliyunOSS__Domain: ${OSS_DOMAIN}
+      VoiceRecognition__AppId: ${VOICE_APP_ID:-}
+      VoiceRecognition__ApiKey: ${VOICE_API_KEY:-}
+      VoiceRecognition__ApiSecret: ${VOICE_API_SECRET:-}
+    volumes:
+      - api_logs:/app/logs
+
+volumes:
+  api_logs:

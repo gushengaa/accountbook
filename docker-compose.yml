@@ -1,0 +1,93 @@
+services:
+  api1:
+    <<: &api-common
+      build:
+        context: .
+        dockerfile: Dockerfile
+      restart: unless-stopped
+      environment:
+        ASPNETCORE_ENVIRONMENT: Production
+        ASPNETCORE_URLS: http://+:8080
+        PathBase: /accountbook
+        UseHttpsRedirection: "false"
+        Database__RunMigrationsOnStartup: "false"
+        ConnectionStrings__DefaultConnection: ${DB_CONNECTION:-Host=postgres;Port=5432;Database=AccountBook;Username=postgres;Password=postgres;Timezone=UTC}
+        ConnectionStrings__ReadOnlyConnection: ${DB_READ_CONNECTION:-}
+        ConnectionStrings__Redis: ${REDIS_CONNECTION:-redis:6379}
+        Jwt__Key: ${JWT_KEY:-change-me-to-a-secret-key-at-least-32-chars}
+        Jwt__Issuer: AccountBook
+        Jwt__Audience: AccountBook
+        WeChat__AppId: ${WECHAT_APP_ID:-}
+        WeChat__AppSecret: ${WECHAT_APP_SECRET:-}
+        WeChat__token: ${WECHAT_TOKEN:-}
+        WeChat__EnableContentSecurity: ${WECHAT_ENABLE_CONTENT_SECURITY:-true}
+        AliyunOSS__AccessKeyId: ${OSS_ACCESS_KEY_ID:-}
+        AliyunOSS__AccessKeySecret: ${OSS_ACCESS_KEY_SECRET:-}
+        AliyunOSS__Endpoint: ${OSS_ENDPOINT:-https://oss-cn-shanghai.aliyuncs.com}
+        AliyunOSS__BucketName: ${OSS_BUCKET_NAME:-}
+        AliyunOSS__Domain: ${OSS_DOMAIN:-}
+        VoiceRecognition__AppId: ${VOICE_APP_ID:-}
+        VoiceRecognition__ApiKey: ${VOICE_API_KEY:-}
+        VoiceRecognition__ApiSecret: ${VOICE_API_SECRET:-}
+      depends_on:
+        postgres:
+          condition: service_healthy
+        redis:
+          condition: service_started
+      networks:
+        - accountbook
+      healthcheck:
+        test: ["CMD-SHELL", "curl -sf http://localhost:8080/accountbook/health || exit 1"]
+        interval: 30s
+        timeout: 5s
+        retries: 3
+        start_period: 40s
+    container_name: accountbook-api-1
+    ports:
+      - "8080:8080"
+
+  api2:
+    <<: *api-common
+    container_name: accountbook-api-2
+    ports:
+      - "8081:8080"
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: accountbook-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: AccountBook
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d AccountBook"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - accountbook
+
+  redis:
+    image: redis:7-alpine
+    container_name: accountbook-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    networks:
+      - accountbook
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  accountbook:
+    driver: bridge

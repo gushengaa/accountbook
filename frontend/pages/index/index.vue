@@ -62,32 +62,26 @@
           </view>
           <!-- 有统计内容时：个人账本 或 已选集体账本 -->
           <template v-else>
-            <view class="stats-header">
-              <text class="stats-title">{{ statsTitle }}</text>
-            </view>
             <view class="stats-content">
               <view class="stat-item stat-item--expense">
-                <text class="stat-label">支出</text>
-                <text class="stat-value expense">￥{{ formatAmount(currentMonthExpense) }}</text>
-              </view>
-              <template v-if="currentBook && currentMonthIncome > 0">
-              <view class="stat-divider"></view>
-              <view class="stat-item">
-                <text class="stat-label">收入</text>
-                <text class="stat-value income">￥{{ formatAmount(currentMonthIncome) }}</text>
-              </view>
-              </template>
-              <template v-if="currentBook && currentBook.budget > 0">
-                <view class="stat-divider"></view>
-                <view class="stat-item stat-item--budget">
-                  <text class="stat-label">预算剩余</text>
-                  <text class="stat-value budget">￥{{ (currentBudgetRemaining ?? 0).toFixed(2) }}</text>
+                <view class="stat-expense-header">
+                  <text class="stat-label">本月支出</text>
+                  <view class="stat-amount-toggle" @click.stop="toggleStatsAmountVisibility">
+                    <app-icon :name="showStatsAmount ? 'eye' : 'eye-off'" :size="18" color="#2b2b2b" />
+                  </view>
                 </view>
-              </template>
+                <text class="stat-value expense">{{ showStatsAmount ? `￥${formatAmount(currentMonthExpense)}` : '￥****' }}</text>
+              </view>
+              <view v-if="currentBook" class="stat-sub-row">
+                <text class="stat-sub-text">本月收入 {{ showStatsAmount ? `￥${formatAmount(currentMonthIncome)}` : '￥****' }}</text>
+              </view>
+              <view v-if="currentBook" class="stat-sub-row">
+                <text class="stat-sub-text">预算剩余 {{ showStatsAmount ? `￥${(currentBudgetRemaining ?? 0).toFixed(2)}` : '￥****' }}</text>
+              </view>
             </view>
-            <view class="stats-book-link" v-if="currentBook" @click="goToCurrentBookDetail">
+            <!-- <view class="stats-book-link" v-if="currentBook" @click="goToCurrentBookDetail">
               <text>共{{ displayTransactionsCount }}笔交易，查看全部{{ '>' }}</text>
-            </view>
+            </view> -->
           </template>
         </view>
       </view>
@@ -103,7 +97,7 @@
       <view class="strip-header">
         <view class="strip-title-wrap">
           <app-icon class="strip-title-icon" name="bars" :size="16" color="#F5A623" />
-          <text class="strip-title">收支小结</text>
+          <text class="strip-title">收支小计</text>
         </view>
       </view>
       <view class="strip-items">
@@ -288,7 +282,8 @@ export default {
       sharedMonthIncome: 0, // 集体账本本月收入
       sharedRecentTransactions: [], // 集体账本最近交易
       sharedTransactionsCount: 0, // 集体账本交易总数
-      periodSummary: null // 昨日 / 今日 / 本周支出统计
+      periodSummary: null, // 昨日 / 今日 / 本周支出统计
+      showStatsAmount: true // 是否显示统计金额
     };
   },
   computed: {
@@ -341,13 +336,6 @@ export default {
     currentBudgetRemaining() {
       return this.accountBookTab === 'personal' ? this.budgetRemainingPersonal : this.budgetRemainingShared;
     },
-    // 收支概况标题：集体账本有起止日期时显示日期范围，否则显示本月
-    statsTitle() {
-      if (this.accountBookTab === 'shared') {
-        return `总收支概况`;
-      }
-      return '本月收支概况';
-    },
     showPeriodSummary() {
       if (this.isGuestMode || !this.$store.state.token) return false;
       return !!this.currentBook;
@@ -395,6 +383,12 @@ export default {
     if (savedTab && (savedTab === 'personal' || savedTab === 'shared')) {
       this.accountBookTab = savedTab;
     }
+    const savedStatsAmountVisible = uni.getStorageSync('statsAmountVisible');
+    if (savedStatsAmountVisible === false || savedStatsAmountVisible === 'false') {
+      this.showStatsAmount = false;
+    } else if (savedStatsAmountVisible === true || savedStatsAmountVisible === 'true') {
+      this.showStatsAmount = true;
+    }
     // 页面显示时刷新数据（从其他页面返回时）
     this.loadData().then(() => {
       // 如果是集体账本选项卡，加载集体账本数据
@@ -413,6 +407,10 @@ export default {
   },
   methods: {
     ...mapActions(['setCurrentAccountBook', 'updateAccountBooks', 'setCurrentSharedAccountBook']),
+    toggleStatsAmountVisibility() {
+      this.showStatsAmount = !this.showStatsAmount;
+      uni.setStorageSync('statsAmountVisible', this.showStatsAmount);
+    },
     
     formatDate,
     formatAmount,
@@ -844,8 +842,7 @@ export default {
 
 /* 顶部区域：上 1/3，底部圆弧 */
 .top-bg {
-  height: 27vh;
-  min-height: 240rpx;
+  min-height: 27vh;
   margin-left: -24rpx;
   margin-right: -24rpx;
   margin-bottom: 30rpx;
@@ -980,7 +977,7 @@ export default {
   position: relative;
   overflow: hidden;
   padding: 24rpx 12rpx;
-  margin: -48rpx 0 -48rpx;
+  margin: -48rpx 0 0;
   width: 100%;
   border-radius: 24rpx;
   color: #333333;
@@ -1003,7 +1000,7 @@ export default {
     background-image: url("/static/moneypocket2.png");
     background-repeat: no-repeat;
     background-size: 36%;
-    background-position: -40rpx 130rpx;
+    background-position: right -40rpx top 130rpx;
     opacity: 0.4;
     pointer-events: none;
     z-index: 0;
@@ -1013,7 +1010,7 @@ export default {
     position: relative;
     z-index: 1;
     .stats-book-link {
-      margin-top: 36rpx;
+      margin-top: 20rpx;
       display: flex;
       justify-content: center;
 
@@ -1078,16 +1075,6 @@ export default {
     }
   }
   
-  .stats-header {
-    margin-bottom: 24rpx;
-    text-align: left;
-    margin-left: 18rpx;
-    .stats-title {
-      font-size: 24rpx;
-      color: #666666;
-    }
-  }
-  
   .account-book-meta {
     display: flex;
     justify-content: center;
@@ -1122,16 +1109,25 @@ export default {
   
   .stats-content {
     display: flex;
-    align-items: center;
-    margin-bottom: 32rpx;
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 16rpx;
     width: 100%;
     box-sizing: border-box;
-    
-    .stat-divider {
-      width: 2rpx;
-      height: 64rpx;
-      background: rgba(0, 0, 0, 0.1);
-      flex: 0 0 2rpx;
+
+    .stat-sub-row {
+      margin-top: 16rpx;
+      margin-left: 18rpx;
+      text-align: left;
+
+      & + .stat-sub-row {
+        margin-top: 8rpx;
+      }
+    }
+
+    .stat-sub-text {
+      font-size: 28rpx;
+      color: #2b2b2b;
     }
     
     .stat-item {
@@ -1150,7 +1146,46 @@ export default {
         text-align: center;
       }
 
-      &.stat-item--expense,
+      &.stat-item--expense {
+        align-items: flex-start;
+        margin-left: 18rpx;
+        width: calc(100% - 18rpx);
+
+        .stat-expense-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          padding-right: 18rpx;
+          box-sizing: border-box;
+          margin-bottom: 12rpx;
+        }
+
+        .stat-amount-toggle {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8rpx;
+
+          &:active {
+            opacity: 0.6;
+          }
+        }
+
+        .stat-label {
+          font-size: 28rpx;
+          color: #2b2b2b;
+          text-align: left;
+          margin-bottom: 0;
+          width: auto;
+        }
+
+        .stat-value.expense {
+          font-size: 72rpx;
+          text-align: left;
+        }
+      }
+
       &.stat-item--budget {
         .stat-label {
           font-size: 24rpx;
@@ -1169,7 +1204,7 @@ export default {
         white-space: nowrap;
         
         &.expense {
-          font-size: 64rpx;
+          font-size: 72rpx;
           color: #000000;
         }
         
@@ -1453,9 +1488,11 @@ export default {
 }
 
 .period-summary-strip {
+  position: relative;
+  z-index: 2;
   width: 100%;
   box-sizing: border-box;
-  margin-top: 0rpx;
+  margin-top: 0;
   margin-bottom: 24rpx;
   padding: 24rpx 28rpx;
   background: #FFFFFF;

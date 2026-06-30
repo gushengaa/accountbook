@@ -1,0 +1,15 @@
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/node_modules
+frontend/
+release/
+.git
+.gitignore
+*.md
+**/*.user
+**/*.suo
+**/logs
+**/.env
+**/.env.*

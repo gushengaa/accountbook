@@ -1,0 +1,26 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore": "Information"
+    }
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=124.222.233.110;Port=5432;Database=AccountBook;Username=postgres;Password=YOUR_PASSWORD;Timezone=UTC;SSL Mode=Disable"
+  },
+  "Jwt": {
+    "Key": "your-local-jwt-key-at-least-32-chars"
+  },
+  "WeChat": {
+    "AppId": "wxXXXXXXXX",
+    "AppSecret": "your_app_secret",
+    "token": "your_wechat_token"
+  },
+  "AliyunOSS": {
+    "AccessKeyId": "your_access_key",
+    "AccessKeySecret": "your_access_secret",
+    "BucketName": "your_bucket",
+    "Domain": "https://your-bucket.oss-cn-shanghai.aliyuncs.com"
+  }
+}
