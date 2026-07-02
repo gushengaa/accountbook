@@ -12,7 +12,7 @@ const store = common_vendor.createStore({
     addTransactionAccountBook: null,
     // 记账时指定的账本信息 { id, type }
     currentSharedAccountBook: null,
-    // 当前集体账本
+    // 当前一起账本
     switchToAITab: false,
     // 是否切换到AI记账tab
     isGuestMode: utils_api.getToken() ? common_vendor.index.getStorageSync("isGuestMode") || false : true
@@ -92,7 +92,7 @@ const store = common_vendor.createStore({
     setAddTransactionAccountBook({ commit }, accountBook) {
       commit("SET_ADD_TRANSACTION_ACCOUNT_BOOK", accountBook);
     },
-    // 设置当前集体账本
+    // 设置当前一起账本
     setCurrentSharedAccountBook({ commit }, sharedAccountBook) {
       commit("SET_CURRENT_SHARED_ACCOUNT_BOOK", sharedAccountBook);
     },

@@ -3,16 +3,16 @@
     <!-- 创建按钮 -->
     <view class="create-btn" @click="goToCreate">
       <text class="create-icon">+</text>
-      <text class="create-text">创建集体账本</text>
+      <text class="create-text">创建一起账本</text>
     </view>
     
     <!-- 加入按钮 -->
     <view class="join-btn" @click="showJoinDialog = true">
       <text class="join-icon">🔗</text>
-      <text class="join-text">加入集体账本</text>
+      <text class="join-text">加入一起账本</text>
     </view>
     
-    <!-- 集体账本列表 -->
+    <!-- 一起账本列表 -->
     <view class="shared-account-books-list">
       <view 
         v-for="book in sharedAccountBooks" 
@@ -38,16 +38,16 @@
       </view>
       
       <view v-if="sharedAccountBooks.length === 0" class="empty-state">
-        <text class="empty-text">还没有集体账本</text>
-        <text class="empty-hint">创建或加入一个集体账本开始使用吧~</text>
+        <text class="empty-text">还没有一起账本</text>
+        <text class="empty-hint">创建或加入一个一起账本开始使用吧~</text>
       </view>
     </view>
     
-    <!-- 加入集体账本弹窗 -->
+    <!-- 加入一起账本弹窗 -->
     <view v-if="showJoinDialog" class="dialog-mask" @click="showJoinDialog = false">
       <view class="dialog-content" @click.stop>
         <view class="dialog-header">
-          <text class="dialog-title">加入集体账本</text>
+          <text class="dialog-title">加入一起账本</text>
           <text class="dialog-close" @click="showJoinDialog = false">×</text>
         </view>
         <view class="dialog-body">
@@ -96,7 +96,7 @@ export default {
       try {
         this.sharedAccountBooks = await api.sharedAccountBooks.getList();
       } catch (error) {
-        console.error('加载集体账本失败', error);
+        console.error('加载一起账本失败', error);
         uni.showToast({
           title: '加载失败',
           icon: 'none'

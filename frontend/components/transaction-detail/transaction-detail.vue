@@ -34,7 +34,7 @@
           <text class="detail-value">{{ formatDate(transaction.transactionDate, 'YYYY-MM-DD HH:mm') }}</text>
         </view>
         
-        <!-- 创建者信息（集体账本） -->
+        <!-- 创建者信息（一起账本） -->
         <view v-if="transaction.accountBookType === 1 && (transaction.userName || transaction.userId)" class="detail-item">
           <text class="detail-label">创建者</text>
           <view class="detail-value creator-value">

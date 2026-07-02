@@ -30,7 +30,7 @@ export const APP_ICONS = {
   file: 'file-text'
 };
 
-/** 集体账本用途 category 编号 */
+/** 一起账本用途 category 编号 */
 export const BOOK_CATEGORY_ICONS = {
   0: 'home',
   1: 'flight-takeoff',
@@ -43,17 +43,17 @@ export const BOOK_CATEGORY_ICONS = {
   99: 'file-text'
 };
 
-/** 账本用途主色 */
+/** 账本用途主色（暖色系，与小程序琥珀主色 #F5A623 协调） */
 export const BOOK_CATEGORY_COLORS = {
   0: '#F5A623',
-  1: '#4A9EFF',
+  1: '#E8940C',
   2: '#E67E22',
   3: '#E85D8A',
-  4: '#9B7EDE',
-  5: '#3498DB',
-  6: '#5CB85C',
-  7: '#FF6B6B',
-  99: '#95A5A6'
+  4: '#C9926E',
+  5: '#D4820A',
+  6: '#8FAD6E',
+  7: '#E85D4B',
+  99: '#A8A29E'
 };
 
 /** 账本用途 Emoji（与创建页 categoryOptions 一致） */

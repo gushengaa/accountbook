@@ -10,12 +10,12 @@ const _sfc_main = {
   },
   computed: {
     ...common_vendor.mapState(["userInfo"]),
-    // 账本已结束（集体账本 status===1 时不可记账）
+    // 账本已结束（一起账本 status===1 时不可记账）
     isBookEnded() {
       var _a;
       return this.accountBookType === 1 && ((_a = this.accountBook) == null ? void 0 : _a.status) === 1;
     },
-    // 集体账本且有起止日期时使用日期范围选择
+    // 一起账本且有起止日期时使用日期范围选择
     useDateRangePicker() {
       var _a, _b;
       return this.accountBookType === 1 && ((_a = this.accountBook) == null ? void 0 : _a.startDate) && ((_b = this.accountBook) == null ? void 0 : _b.endDate);
@@ -238,14 +238,14 @@ const _sfc_main = {
     return {
       accountBookId: null,
       accountBookType: 1,
-      // 0-个人账本，1-集体账本
+      // 0-个人账本，1-一起账本
       accountBook: null,
       allTransactions: [],
       // 所有交易记录
       selectedMonth: currentMonth,
       // 选中的月份 YYYY-MM
       selectedDateStart: "",
-      // 日期范围：开始 YYYY-MM-DD（集体账本有起止日期时）
+      // 日期范围：开始 YYYY-MM-DD（一起账本有起止日期时）
       selectedDateEnd: "",
       // 日期范围：结束 YYYY-MM-DD
       selectedType: null,
@@ -319,7 +319,7 @@ const _sfc_main = {
     var _a;
     if (this.accountBookType === 1 && ((_a = this.accountBook) == null ? void 0 : _a.shareCode)) {
       return {
-        title: `邀请你加入集体账本：${this.accountBook.name}`,
+        title: `邀请你加入一起账本：${this.accountBook.name}`,
         path: `/pages/join-account-book/join-account-book?shareCode=${this.accountBook.shareCode}`,
         imageUrl: "/static/invite.jpg"
         // 可以设置分享图片URL
@@ -580,7 +580,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     c: ((_b = $data.accountBook) == null ? void 0 : _b.status) === 1
   }, ((_c = $data.accountBook) == null ? void 0 : _c.status) === 1 ? {} : {}) : ((_d = $data.accountBook) == null ? void 0 : _d.isDefault) ? {} : {}, {
     d: (_e = $data.accountBook) == null ? void 0 : _e.isDefault,
-    e: common_vendor.t($data.accountBookType === 0 ? "个人账本" : "集体账本"),
+    e: common_vendor.t($data.accountBookType === 0 ? "个人账本" : "一起账本"),
     f: (_f = $data.accountBook) == null ? void 0 : _f.categoryName
   }, ((_g = $data.accountBook) == null ? void 0 : _g.categoryName) ? {
     g: common_vendor.t($data.accountBook.categoryName)

@@ -15,19 +15,22 @@ const _sfc_main = {
       personalAccountBooks: [],
       sharedAccountBooks: [],
       showJoinDialog: false,
+      showEndConfirmDialog: false,
       showDeleteConfirmDialog: false,
       shareCode: "",
       joining: false,
+      ending: false,
       deleting: false,
+      endTargetBook: null,
       deleteTargetBook: null,
       deleteBookType: 0,
-      // 0-个人账本，1-集体账本
+      // 0-个人账本，1-一起账本
       currentShareBook: null
       // 当前要分享的账本
     };
   },
   computed: {
-    ...common_vendor.mapState(["currentAccountBook"]),
+    ...common_vendor.mapState(["currentAccountBook", "userInfo"]),
     // 按状态筛选后的个人账本：全部/进行中/已结束
     displayedPersonalBooks() {
       const list = this.personalAccountBooks || [];
@@ -37,7 +40,7 @@ const _sfc_main = {
         return list.filter((b) => b.status !== 1);
       return list.filter((b) => b.status === 1);
     },
-    // 按状态筛选后的集体账本
+    // 按状态筛选后的一起账本
     displayedSharedBooks() {
       const list = this.sharedAccountBooks || [];
       if (this.statusTab === "all")
@@ -63,7 +66,7 @@ const _sfc_main = {
     var _a;
     if ((_a = this.currentShareBook) == null ? void 0 : _a.shareCode) {
       return {
-        title: `邀请你加入集体账本：${this.currentShareBook.name}`,
+        title: `邀请你加入一起账本：${this.currentShareBook.name}`,
         path: `/pages/join-account-book/join-account-book?shareCode=${this.currentShareBook.shareCode}`,
         imageUrl: "/static/invite.jpg"
       };
@@ -74,7 +77,7 @@ const _sfc_main = {
     };
   },
   methods: {
-    ...common_vendor.mapActions(["setCurrentAccountBook", "updateAccountBooks"]),
+    ...common_vendor.mapActions(["setCurrentAccountBook", "updateAccountBooks", "setCurrentSharedAccountBook"]),
     formatDate: utils_util.formatDate,
     getBookCategoryEmoji: utils_iconMap.getBookCategoryEmoji,
     getBookCategoryBadgeStyle: utils_iconMap.getBookCategoryBadgeStyle,
@@ -96,12 +99,12 @@ const _sfc_main = {
         try {
           sharedBooks = await utils_api.api.sharedAccountBooks.getList();
         } catch (error) {
-          common_vendor.index.__f__("error", "at pages/account-books/account-books.vue:315", "加载集体账本失败", error);
+          common_vendor.index.__f__("error", "at pages/account-books/account-books.vue:339", "加载一起账本失败", error);
         }
         this.sharedAccountBooks = sharedBooks;
         this.updateAccountBooks(personalBooks);
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/account-books/account-books.vue:322", "加载账本失败", error);
+        common_vendor.index.__f__("error", "at pages/account-books/account-books.vue:346", "加载账本失败", error);
         common_vendor.index.showToast({
           title: "加载失败",
           icon: "none"
@@ -184,13 +187,87 @@ const _sfc_main = {
         this.shareCode = "";
         await this.loadAccountBooks();
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/account-books/account-books.vue:423", "加入失败", error);
+        common_vendor.index.__f__("error", "at pages/account-books/account-books.vue:447", "加入失败", error);
         common_vendor.index.showToast({
           title: error.message || "加入失败",
           icon: "none"
         });
       } finally {
         this.joining = false;
+      }
+    },
+    getSharedBookCreatorId(book) {
+      if (!book)
+        return null;
+      return book.creatorId ?? book.userId ?? null;
+    },
+    isSharedBookCreator(book) {
+      var _a;
+      const creatorId = this.getSharedBookCreatorId(book);
+      const userId = (_a = this.userInfo) == null ? void 0 : _a.id;
+      if (creatorId == null || userId == null)
+        return false;
+      return String(creatorId) === String(userId);
+    },
+    canEndSharedBook(book) {
+      return !!(book && book.status !== 1 && this.isSharedBookCreator(book));
+    },
+    showEndDialog(book) {
+      if (!this.canEndSharedBook(book)) {
+        common_vendor.index.showToast({
+          title: "仅创建者可结束账本",
+          icon: "none"
+        });
+        return;
+      }
+      this.endTargetBook = book;
+      this.showEndConfirmDialog = true;
+    },
+    async confirmEndBook() {
+      var _a, _b, _c;
+      if (!this.endTargetBook)
+        return;
+      if (!this.canEndSharedBook(this.endTargetBook)) {
+        common_vendor.index.showToast({
+          title: "仅创建者可结束账本",
+          icon: "none"
+        });
+        this.showEndConfirmDialog = false;
+        this.endTargetBook = null;
+        return;
+      }
+      this.ending = true;
+      try {
+        const book = this.endTargetBook;
+        await utils_api.api.sharedAccountBooks.update(book.id, {
+          name: book.name,
+          description: book.description || null,
+          budget: book.budget ?? null,
+          startDate: book.startDate || null,
+          endDate: book.endDate || null,
+          status: 1
+        });
+        if (((_a = this.currentAccountBook) == null ? void 0 : _a.id) === book.id && ((_b = this.currentAccountBook) == null ? void 0 : _b.type) === 1) {
+          await this.setCurrentAccountBook(null);
+        }
+        if (((_c = this.$store.state.currentSharedAccountBook) == null ? void 0 : _c.id) === book.id) {
+          this.setCurrentSharedAccountBook(null);
+        }
+        common_vendor.index.showToast({
+          title: "账本已结束",
+          icon: "success"
+        });
+        this.showEndConfirmDialog = false;
+        this.endTargetBook = null;
+        await this.loadAccountBooks();
+      } catch (error) {
+        common_vendor.index.__f__("error", "at pages/account-books/account-books.vue:526", "结束账本失败", error);
+        common_vendor.index.showToast({
+          title: error.message || "结束失败",
+          icon: "none"
+        });
+      } finally {
+        this.ending = false;
       }
     },
     showDeleteDialog(book, type) {
@@ -220,7 +297,7 @@ const _sfc_main = {
         this.deleteTargetBook = null;
         await this.loadAccountBooks();
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/account-books/account-books.vue:470", "删除失败", error);
+        common_vendor.index.__f__("error", "at pages/account-books/account-books.vue:573", "删除失败", error);
         common_vendor.index.showToast({
           title: error.message || "删除失败",
           icon: "none"
@@ -242,29 +319,24 @@ if (!Math) {
   (_easycom_app_icon + _easycom_app_tab_bar)();
 }
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
-  var _a;
+  var _a, _b;
   return common_vendor.e({
     a: $data.accountBookTab === "personal" ? 1 : "",
-    b: $data.accountBookTab === "personal" ? 1 : "",
-    c: common_vendor.o(($event) => $options.switchAccountBookTab("personal"), "b8"),
-    d: $data.accountBookTab === "shared" ? 1 : "",
-    e: $data.accountBookTab === "shared" ? 1 : "",
-    f: common_vendor.o(($event) => $options.switchAccountBookTab("shared"), "15"),
-    g: $data.statusTab === "all" ? 1 : "",
-    h: $data.statusTab === "all" ? 1 : "",
-    i: common_vendor.o(($event) => $data.statusTab = "all", "5c"),
-    j: $data.statusTab === "active" ? 1 : "",
-    k: $data.statusTab === "active" ? 1 : "",
-    l: common_vendor.o(($event) => $data.statusTab = "active", "81"),
-    m: $data.statusTab === "ended" ? 1 : "",
-    n: $data.statusTab === "ended" ? 1 : "",
-    o: common_vendor.o(($event) => $data.statusTab = "ended", "cf"),
-    p: $data.accountBookTab === "personal"
+    b: common_vendor.o(($event) => $options.switchAccountBookTab("personal"), "5e"),
+    c: $data.accountBookTab === "shared" ? 1 : "",
+    d: common_vendor.o(($event) => $options.switchAccountBookTab("shared"), "b4"),
+    e: $data.statusTab === "all" ? 1 : "",
+    f: common_vendor.o(($event) => $data.statusTab = "all", "02"),
+    g: $data.statusTab === "active" ? 1 : "",
+    h: common_vendor.o(($event) => $data.statusTab = "active", "d9"),
+    i: $data.statusTab === "ended" ? 1 : "",
+    j: common_vendor.o(($event) => $data.statusTab = "ended", "06"),
+    k: $data.accountBookTab === "personal"
   }, $data.accountBookTab === "personal" ? common_vendor.e({
-    q: $options.displayedPersonalBooks.length > 0
+    l: $options.displayedPersonalBooks.length > 0
   }, $options.displayedPersonalBooks.length > 0 ? {
-    r: common_vendor.f($options.displayedPersonalBooks, (book, k0, i0) => {
-      var _a2, _b, _c, _d, _e, _f;
+    m: common_vendor.f($options.displayedPersonalBooks, (book, k0, i0) => {
+      var _a2, _b2, _c, _d, _e, _f;
       return common_vendor.e({
         a: "a90a7920-0-" + i0,
         b: common_vendor.p({
@@ -278,7 +350,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         e: common_vendor.s($options.getBookCategoryBadgeStyle(book.category)),
         f: book.isDefault
       }, book.isDefault ? {} : {}, {
-        g: ((_a2 = _ctx.currentAccountBook) == null ? void 0 : _a2.id) === book.id && ((_b = _ctx.currentAccountBook) == null ? void 0 : _b.type) === 0
+        g: ((_a2 = _ctx.currentAccountBook) == null ? void 0 : _a2.id) === book.id && ((_b2 = _ctx.currentAccountBook) == null ? void 0 : _b2.type) === 0
       }, ((_c = _ctx.currentAccountBook) == null ? void 0 : _c.id) === book.id && ((_d = _ctx.currentAccountBook) == null ? void 0 : _d.type) === 0 ? {} : {}, {
         h: common_vendor.t(book.description || "暂无描述"),
         i: common_vendor.t($options.formatDate(book.createdAt)),
@@ -290,15 +362,15 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       });
     })
   } : {
-    s: common_vendor.t($data.statusTab === "all" ? "还没有个人账本" : $data.statusTab === "active" ? "还没有进行中的个人账本" : "还没有已结束的个人账本"),
-    t: common_vendor.t($data.statusTab === "all" || $data.statusTab === "active" ? "点击上方「创建账本」开始使用" : "已结束的账本将显示在此")
+    n: common_vendor.t($data.statusTab === "all" ? "还没有个人账本" : $data.statusTab === "active" ? "还没有进行中的个人账本" : "还没有已结束的个人账本"),
+    o: common_vendor.t($data.statusTab === "all" || $data.statusTab === "active" ? "点击上方「创建账本」开始使用" : "已结束的账本将显示在此")
   }) : {}, {
-    v: $data.accountBookTab === "shared"
+    p: $data.accountBookTab === "shared"
   }, $data.accountBookTab === "shared" ? common_vendor.e({
-    w: $options.displayedSharedBooks.length > 0
+    q: $options.displayedSharedBooks.length > 0
   }, $options.displayedSharedBooks.length > 0 ? {
-    x: common_vendor.f($options.displayedSharedBooks, (book, k0, i0) => {
-      var _a2, _b, _c, _d, _e, _f;
+    r: common_vendor.f($options.displayedSharedBooks, (book, k0, i0) => {
+      var _a2, _b2, _c, _d, _e, _f;
       return common_vendor.e({
         a: "a90a7920-1-" + i0,
         b: common_vendor.p({
@@ -312,7 +384,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         e: common_vendor.s($options.getBookCategoryBadgeStyle(book.category)),
         f: book.status === 1
       }, book.status === 1 ? {} : {}, {
-        g: ((_a2 = _ctx.currentAccountBook) == null ? void 0 : _a2.id) === book.id && ((_b = _ctx.currentAccountBook) == null ? void 0 : _b.type) === 1
+        g: ((_a2 = _ctx.currentAccountBook) == null ? void 0 : _a2.id) === book.id && ((_b2 = _ctx.currentAccountBook) == null ? void 0 : _b2.type) === 1
       }, ((_c = _ctx.currentAccountBook) == null ? void 0 : _c.id) === book.id && ((_d = _ctx.currentAccountBook) == null ? void 0 : _d.type) === 1 ? {} : {}, {
         h: common_vendor.t(book.description || "暂无描述"),
         i: common_vendor.t(book.creatorName),
@@ -323,45 +395,60 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       } : {}, {
         m: common_vendor.t(book.shareCode),
         n: common_vendor.t($options.formatDate(book.createdAt)),
-        o: common_vendor.o(($event) => $options.showDeleteDialog(book, 1), book.id),
-        p: common_vendor.o(($event) => $options.copyShareCode(book), book.id),
-        q: book,
-        r: common_vendor.o(($event) => $options.setShareBook(book), book.id),
-        s: book.id,
-        t: ((_e = _ctx.currentAccountBook) == null ? void 0 : _e.id) === book.id && ((_f = _ctx.currentAccountBook) == null ? void 0 : _f.type) === 1 ? 1 : "",
-        v: common_vendor.s($options.getBookCardTintStyle(book.category)),
-        w: common_vendor.o(($event) => $options.viewSharedAccountBook(book), book.id)
+        o: book.status !== 1 && $options.canEndSharedBook(book)
+      }, book.status !== 1 && $options.canEndSharedBook(book) ? {
+        p: common_vendor.o(($event) => $options.showEndDialog(book), book.id)
+      } : {}, {
+        q: common_vendor.o(($event) => $options.showDeleteDialog(book, 1), book.id),
+        r: common_vendor.o(($event) => $options.copyShareCode(book), book.id),
+        s: book,
+        t: common_vendor.o(($event) => $options.setShareBook(book), book.id),
+        v: book.id,
+        w: ((_e = _ctx.currentAccountBook) == null ? void 0 : _e.id) === book.id && ((_f = _ctx.currentAccountBook) == null ? void 0 : _f.type) === 1 ? 1 : "",
+        x: common_vendor.s($options.getBookCardTintStyle(book.category)),
+        y: common_vendor.o(($event) => $options.viewSharedAccountBook(book), book.id)
       });
     })
   } : {
-    y: common_vendor.t($data.statusTab === "all" ? "还没有集体账本" : $data.statusTab === "active" ? "还没有进行中的集体账本" : "还没有已结束的集体账本"),
-    z: common_vendor.t($data.statusTab === "all" || $data.statusTab === "active" ? "点击上方「创建账本」或「加入账本」" : "已结束的集体账本将显示在此")
+    s: common_vendor.t($data.statusTab === "all" ? "还没有一起账本" : $data.statusTab === "active" ? "还没有进行中的一起账本" : "还没有已结束的一起账本"),
+    t: common_vendor.t($data.statusTab === "all" || $data.statusTab === "active" ? "点击上方「创建账本」或「加入账本」" : "已结束的一起账本将显示在此")
   }) : {}, {
-    A: $data.showDeleteConfirmDialog
+    v: $data.showEndConfirmDialog
+  }, $data.showEndConfirmDialog ? {
+    w: common_vendor.o(($event) => $data.showEndConfirmDialog = false, "0c"),
+    x: common_vendor.t((_a = $data.endTargetBook) == null ? void 0 : _a.name),
+    y: common_vendor.o(($event) => $data.showEndConfirmDialog = false, "5a"),
+    z: common_vendor.o((...args) => $options.confirmEndBook && $options.confirmEndBook(...args), "49"),
+    A: $data.ending,
+    B: common_vendor.o(() => {
+    }, "2c"),
+    C: common_vendor.o(($event) => $data.showEndConfirmDialog = false, "f1")
+  } : {}, {
+    D: $data.showDeleteConfirmDialog
   }, $data.showDeleteConfirmDialog ? {
-    B: common_vendor.o(($event) => $data.showDeleteConfirmDialog = false, "0a"),
-    C: common_vendor.t((_a = $data.deleteTargetBook) == null ? void 0 : _a.name),
-    D: common_vendor.o(($event) => $data.showDeleteConfirmDialog = false, "45"),
-    E: common_vendor.o((...args) => $options.confirmDelete && $options.confirmDelete(...args), "6d"),
-    F: $data.deleting,
-    G: common_vendor.o(() => {
-    }, "d6"),
-    H: common_vendor.o(($event) => $data.showDeleteConfirmDialog = false, "fc")
+    E: common_vendor.o(($event) => $data.showDeleteConfirmDialog = false, "bf"),
+    F: common_vendor.t((_b = $data.deleteTargetBook) == null ? void 0 : _b.name),
+    G: common_vendor.o(($event) => $data.showDeleteConfirmDialog = false, "6c"),
+    H: common_vendor.o((...args) => $options.confirmDelete && $options.confirmDelete(...args), "8f"),
+    I: $data.deleting,
+    J: common_vendor.o(() => {
+    }, "21"),
+    K: common_vendor.o(($event) => $data.showDeleteConfirmDialog = false, "ec")
   } : {}, {
-    I: $data.showJoinDialog
+    L: $data.showJoinDialog
   }, $data.showJoinDialog ? {
-    J: common_vendor.o(($event) => $data.showJoinDialog = false, "b3"),
-    K: $data.shareCode,
-    L: common_vendor.o(($event) => $data.shareCode = $event.detail.value, "d8"),
-    M: common_vendor.o(($event) => $data.showJoinDialog = false, "74"),
-    N: common_vendor.o((...args) => $options.joinSharedAccountBook && $options.joinSharedAccountBook(...args), "e5"),
-    O: $data.joining,
-    P: common_vendor.o(() => {
-    }, "0f"),
-    Q: common_vendor.o(($event) => $data.showJoinDialog = false, "b0")
+    M: common_vendor.o(($event) => $data.showJoinDialog = false, "51"),
+    N: $data.shareCode,
+    O: common_vendor.o(($event) => $data.shareCode = $event.detail.value, "8b"),
+    P: common_vendor.o(($event) => $data.showJoinDialog = false, "f1"),
+    Q: common_vendor.o((...args) => $options.joinSharedAccountBook && $options.joinSharedAccountBook(...args), "57"),
+    R: $data.joining,
+    S: common_vendor.o(() => {
+    }, "c6"),
+    T: common_vendor.o(($event) => $data.showJoinDialog = false, "1f")
   } : {}, {
-    R: common_vendor.o((...args) => $options.goToCreateAccountBook && $options.goToCreateAccountBook(...args), "4e"),
-    S: common_vendor.p({
+    U: common_vendor.o((...args) => $options.goToCreateAccountBook && $options.goToCreateAccountBook(...args), "48"),
+    V: common_vendor.p({
       current: 1
     })
   });

@@ -14,7 +14,7 @@
       <textarea 
         class="form-textarea" 
         v-model="form.description"
-        placeholder="描述一下这个集体账本的用途"
+        placeholder="描述一下这个一起账本的用途"
         maxlength="200"
       />
     </view>
@@ -145,7 +145,7 @@
     
     <view class="danger-section" v-if="isCreator">
       <button class="danger-btn" @click="deleteSharedAccountBook">
-        删除集体账本
+        删除一起账本
       </button>
     </view>
   </view>
@@ -412,7 +412,7 @@ export default {
     async deleteSharedAccountBook() {
       uni.showModal({
         title: '确认删除',
-        content: '删除集体账本将同时删除所有相关数据，此操作不可恢复！',
+        content: '删除一起账本将同时删除所有相关数据，此操作不可恢复！',
         confirmColor: '#F5A623',
         success: async (res) => {
           if (res.confirm) {
@@ -602,7 +602,7 @@ export default {
       margin-bottom: 12rpx;
     }
     .linked-parent {
-      background: #F0F9F8;
+      background: #FFF8EB;
       border-left: 4rpx solid #F7B84D;
     }
     .linked-child-row {

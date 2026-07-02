@@ -152,7 +152,7 @@
   margin-bottom: 12rpx;
 }
 .form-section .linked-type-group .linked-parent.data-v-c141a7f7 {
-  background: #F0F9F8;
+  background: #FFF8EB;
   border-left: 4rpx solid #F7B84D;
 }
 .form-section .linked-type-group .linked-child-row.data-v-c141a7f7 {

@@ -25,7 +25,7 @@ const _sfc_main = {
       try {
         this.sharedAccountBooks = await utils_api.api.sharedAccountBooks.getList();
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/shared-account-books/shared-account-books.vue:99", "加载集体账本失败", error);
+        common_vendor.index.__f__("error", "at pages/shared-account-books/shared-account-books.vue:99", "加载一起账本失败", error);
         common_vendor.index.showToast({
           title: "加载失败",
           icon: "none"

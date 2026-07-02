@@ -246,7 +246,7 @@ const _sfc_main = {
     async deleteSharedAccountBook() {
       common_vendor.index.showModal({
         title: "确认删除",
-        content: "删除集体账本将同时删除所有相关数据，此操作不可恢复！",
+        content: "删除一起账本将同时删除所有相关数据，此操作不可恢复！",
         confirmColor: "#F5A623",
         success: async (res) => {
           if (res.confirm) {

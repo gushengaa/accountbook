@@ -11,7 +11,7 @@
         <text v-else-if="accountBook?.isDefault" class="status-badge default">默认</text>
       </view>
       <view class="book-tags">
-        <text class="tag type-tag">{{ accountBookType === 0 ? '个人账本' : '集体账本' }}</text>
+        <text class="tag type-tag">{{ accountBookType === 0 ? '个人账本' : '一起账本' }}</text>
         <text class="tag category-tag" v-if="accountBook?.categoryName">{{ accountBook.categoryName }}</text>
       </view>
       <text class="book-description">{{ accountBook?.description || '暂无描述' }}</text>
@@ -89,7 +89,7 @@
         <!-- 筛选器 -->
         <view class="filter-section">
           <view class="filter-row">
-            <!-- 集体账本有起止日期时：日期范围选择 -->
+            <!-- 一起账本有起止日期时：日期范围选择 -->
             <view class="filter-item" v-if="useDateRangePicker">
               <text class="filter-label">日期</text>
               <view class="date-range-pickers">
@@ -288,11 +288,11 @@ export default {
   },
   computed: {
     ...mapState(['userInfo']),
-    // 账本已结束（集体账本 status===1 时不可记账）
+    // 账本已结束（一起账本 status===1 时不可记账）
     isBookEnded() {
       return this.accountBookType === 1 && this.accountBook?.status === 1;
     },
-    // 集体账本且有起止日期时使用日期范围选择
+    // 一起账本且有起止日期时使用日期范围选择
     useDateRangePicker() {
       return this.accountBookType === 1
         && this.accountBook?.startDate
@@ -526,11 +526,11 @@ export default {
     
     return {
       accountBookId: null,
-      accountBookType: 1, // 0-个人账本，1-集体账本
+      accountBookType: 1, // 0-个人账本，1-一起账本
       accountBook: null,
       allTransactions: [], // 所有交易记录
       selectedMonth: currentMonth, // 选中的月份 YYYY-MM
-      selectedDateStart: '', // 日期范围：开始 YYYY-MM-DD（集体账本有起止日期时）
+      selectedDateStart: '', // 日期范围：开始 YYYY-MM-DD（一起账本有起止日期时）
       selectedDateEnd: '', // 日期范围：结束 YYYY-MM-DD
       selectedType: null, // 选中的类型 null-全部, 0-支出, 1-收入
       selectedCategoryId: null, // 选中的分类ID
@@ -608,7 +608,7 @@ export default {
   onShareAppMessage() {
     if (this.accountBookType === 1 && this.accountBook?.shareCode) {
       return {
-        title: `邀请你加入集体账本：${this.accountBook.name}`,
+        title: `邀请你加入一起账本：${this.accountBook.name}`,
         path: `/pages/join-account-book/join-account-book?shareCode=${this.accountBook.shareCode}`,
         imageUrl: '/static/invite.jpg' // 可以设置分享图片URL
       };
@@ -630,11 +630,11 @@ export default {
           // 个人账本
           this.accountBook = await api.accountBooks.getById(this.accountBookId);
         } else {
-          // 集体账本
+          // 一起账本
           this.accountBook = await api.sharedAccountBooks.getById(this.accountBookId);
         }
         
-        // 加载所有交易记录（集体账本和个人账本使用相同的接口）
+        // 加载所有交易记录（一起账本和个人账本使用相同的接口）
         const transactions = await api.transactions.getByAccountBook(this.accountBookId);
         // 为每条交易添加账本类型字段，供详情组件使用
         this.allTransactions = transactions.map(t => ({
@@ -649,7 +649,7 @@ export default {
         ]);
         this.allCategories = [...(expenseCategories || []), ...(incomeCategories || [])];
         
-        // 集体账本有起止日期时，初始化日期范围
+        // 一起账本有起止日期时，初始化日期范围
         if (this.accountBookType === 1 && this.accountBook?.startDate && this.accountBook?.endDate) {
           this.selectedDateStart = String(this.accountBook.startDate).substring(0, 10);
           this.selectedDateEnd = String(this.accountBook.endDate).substring(0, 10);
@@ -742,7 +742,7 @@ export default {
     },
     
     goToSettings() {
-      // 跳转到创建/编辑账本页面编辑账本（个人账本和集体账本均支持）
+      // 跳转到创建/编辑账本页面编辑账本（个人账本和一起账本均支持）
       uni.navigateTo({
         url: `/pages/create-shared-account-book/create-shared-account-book?id=${this.accountBookId}&type=${this.accountBookType}`
       });

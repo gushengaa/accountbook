@@ -26,14 +26,14 @@ const APP_ICONS = {
 };
 const BOOK_CATEGORY_COLORS = {
   0: "#F5A623",
-  1: "#4A9EFF",
+  1: "#E8940C",
   2: "#E67E22",
   3: "#E85D8A",
-  4: "#9B7EDE",
-  5: "#3498DB",
-  6: "#5CB85C",
-  7: "#FF6B6B",
-  99: "#95A5A6"
+  4: "#C9926E",
+  5: "#D4820A",
+  6: "#8FAD6E",
+  7: "#E85D4B",
+  99: "#A8A29E"
 };
 const BOOK_CATEGORY_EMOJI = {
   0: "🏠",

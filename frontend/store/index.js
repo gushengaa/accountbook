@@ -13,7 +13,7 @@ const store = createStore({
     accountBooks: [],
     addTransactionType: null, // 记账类型：0-支出，1-收入
     addTransactionAccountBook: null, // 记账时指定的账本信息 { id, type }
-    currentSharedAccountBook: null, // 当前集体账本
+    currentSharedAccountBook: null, // 当前一起账本
     switchToAITab: false, // 是否切换到AI记账tab
     isGuestMode: getToken() ? (uni.getStorageSync('isGuestMode') || false) : true // 未登录默认体验浏览模式
   },
@@ -100,7 +100,7 @@ const store = createStore({
       commit('SET_ADD_TRANSACTION_ACCOUNT_BOOK', accountBook);
     },
     
-    // 设置当前集体账本
+    // 设置当前一起账本
     setCurrentSharedAccountBook({ commit }, sharedAccountBook) {
       commit('SET_CURRENT_SHARED_ACCOUNT_BOOK', sharedAccountBook);
     },

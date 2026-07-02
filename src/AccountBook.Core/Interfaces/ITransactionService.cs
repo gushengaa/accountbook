@@ -28,6 +28,12 @@ public interface ITransactionService
     Task<UserStatisticsOverviewDto> GetUserStatisticsOverviewAsync(int userId, int year, int month);
 
     /// <summary>
+    /// 个人预算概览：个人账本支出 + 我创建的一起记支出
+    /// </summary>
+    Task<PersonalBudgetOverviewDto> GetPersonalBudgetOverviewAsync(
+        int userId, int year, int month, int? personalAccountBookId = null);
+
+    /// <summary>
     /// 获取用户全账本下某一级分类（含二级）在指定年月的交易明细
     /// </summary>
     Task<List<TransactionDto>> GetUserTransactionsByRootCategoryAsync(

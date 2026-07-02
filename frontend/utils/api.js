@@ -164,9 +164,9 @@ export const api = {
     }
   },
 
-  // 集体账本
+  // 一起账本
   sharedAccountBooks: {
-    // 创建集体账本
+    // 创建一起账本
     create(data) {
       return request({
         url: '/sharedaccountbooks',
@@ -174,21 +174,21 @@ export const api = {
         data
       });
     },
-    // 获取所有集体账本
+    // 获取所有一起账本
     getList() {
       return request({
         url: '/sharedaccountbooks',
         method: 'GET'
       });
     },
-    // 获取集体账本详情
+    // 获取一起账本详情
     getById(id) {
       return request({
         url: `/sharedaccountbooks/${id}`,
         method: 'GET'
       });
     },
-    // 更新集体账本
+    // 更新一起账本
     update(id, data) {
       return request({
         url: `/sharedaccountbooks/${id}`,
@@ -196,14 +196,14 @@ export const api = {
         data
       });
     },
-    // 删除集体账本
+    // 删除一起账本
     delete(id) {
       return request({
         url: `/sharedaccountbooks/${id}`,
         method: 'DELETE'
       });
     },
-    // 加入集体账本
+    // 加入一起账本
     join(data) {
       return request({
         url: '/sharedaccountbooks/join',
@@ -211,7 +211,7 @@ export const api = {
         data
       });
     },
-    // 退出集体账本
+    // 退出一起账本
     leave(id) {
       return request({
         url: `/sharedaccountbooks/${id}/leave`,
@@ -250,7 +250,7 @@ export const api = {
         method: 'GET'
       });
     },
-    // 获取集体账本的所有交易记录（集体账本和个人账本使用相同的接口）
+    // 获取一起账本的所有交易记录（一起账本和个人账本使用相同的接口）
     getBySharedAccountBook(sharedAccountBookId) {
       return request({
         url: `/transactions/account-book/${sharedAccountBookId}`,
@@ -278,6 +278,16 @@ export const api = {
     getStatisticsOverview(year, month) {
       return request({
         url: `/transactions/statistics/overview?year=${year}&month=${month}`,
+        method: 'GET'
+      });
+    },
+    getPersonalBudgetOverview(year, month, personalAccountBookId) {
+      let url = `/transactions/statistics/personal-budget?year=${year}&month=${month}`;
+      if (personalAccountBookId != null && personalAccountBookId !== '') {
+        url += `&personalAccountBookId=${personalAccountBookId}`;
+      }
+      return request({
+        url,
         method: 'GET'
       });
     },

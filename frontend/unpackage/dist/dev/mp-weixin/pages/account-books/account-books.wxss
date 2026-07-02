@@ -111,17 +111,10 @@
   color: #666666;
   font-weight: 500;
 }
-.account-type-tabs .type-tab.active.tab-personal.data-v-a90a7920 {
+.account-type-tabs .type-tab.active.data-v-a90a7920 {
   background: linear-gradient(135deg, #F5A623 0%, #F7B84D 100%);
 }
-.account-type-tabs .type-tab.active.tab-personal .tab-text.data-v-a90a7920 {
-  color: #FFFFFF;
-  font-weight: bold;
-}
-.account-type-tabs .type-tab.active.tab-shared.data-v-a90a7920 {
-  background: linear-gradient(135deg, #E8940C 0%, #D4820A 100%);
-}
-.account-type-tabs .type-tab.active.tab-shared .tab-text.data-v-a90a7920 {
+.account-type-tabs .type-tab.active .tab-text.data-v-a90a7920 {
   color: #FFFFFF;
   font-weight: bold;
 }
@@ -141,24 +134,10 @@
   color: #666666;
   font-weight: 500;
 }
-.status-tags .status-tag.active.tag-all.data-v-a90a7920 {
+.status-tags .status-tag.active.data-v-a90a7920 {
   background: linear-gradient(135deg, #F5A623 0%, #F7B84D 100%);
 }
-.status-tags .status-tag.active.tag-all .status-tag-text.data-v-a90a7920 {
-  color: #FFFFFF;
-  font-weight: bold;
-}
-.status-tags .status-tag.active.tag-active.data-v-a90a7920 {
-  background: linear-gradient(135deg, #5CB85C 0%, #7BC87E 100%);
-}
-.status-tags .status-tag.active.tag-active .status-tag-text.data-v-a90a7920 {
-  color: #FFFFFF;
-  font-weight: bold;
-}
-.status-tags .status-tag.active.tag-ended.data-v-a90a7920 {
-  background: linear-gradient(135deg, #8E99A8 0%, #A8B0BC 100%);
-}
-.status-tags .status-tag.active.tag-ended .status-tag-text.data-v-a90a7920 {
+.status-tags .status-tag.active .status-tag-text.data-v-a90a7920 {
   color: #FFFFFF;
   font-weight: bold;
 }
@@ -179,15 +158,16 @@
   border-color: var(--book-accent, #F5A623);
   box-shadow: 0 6rpx 20rpx var(--book-tint, rgba(245, 166, 35, 0.12));
 }
-.account-books-list .account-book-item .book-accent.data-v-a90a7920 {
-  width: 8rpx;
-  flex-shrink: 0;
-  background: var(--book-accent, #F5A623);
+.account-books-list .account-book-item.shared.data-v-a90a7920 {
+  border-color: var(--book-tint-border, rgba(245, 166, 35, 0.22));
+}
+.account-books-list .account-book-item.shared.active.data-v-a90a7920 {
+  border-color: var(--book-accent, #E8940C);
 }
 .account-books-list .account-book-item .book-card-inner.data-v-a90a7920 {
   flex: 1;
   min-width: 0;
-  padding: 28rpx 28rpx 28rpx 24rpx;
+  padding: 28rpx;
   background: linear-gradient(135deg, var(--book-tint, rgba(245, 166, 35, 0.06)) 0%, #FFFBF5 42%);
 }
 .account-books-list .account-book-item .book-header.data-v-a90a7920 {
@@ -312,6 +292,13 @@
   display: flex;
   align-items: center;
   gap: 16rpx;
+}
+.account-books-list .account-book-item .book-footer .end-btn.data-v-a90a7920 {
+  font-size: 24rpx;
+  color: #E8940C;
+  padding: 8rpx 16rpx;
+  border-radius: 8rpx;
+  background: rgba(245, 166, 35, 0.12);
 }
 .account-books-list .account-book-item .book-footer .delete-btn.data-v-a90a7920 {
   font-size: 24rpx;

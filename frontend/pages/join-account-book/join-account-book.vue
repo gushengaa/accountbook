@@ -1,7 +1,7 @@
 <template>
   <view class="join-container">
     <view class="join-header">
-      <text class="join-title">加入集体账本</text>
+      <text class="join-title">加入一起账本</text>
       <text class="join-subtitle">输入分享码加入账本</text>
     </view>
     

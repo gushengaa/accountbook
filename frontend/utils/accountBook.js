@@ -1,5 +1,5 @@
 /**
- * 从集体账本列表中选取最近一个进行中的账本
+ * 从一起账本列表中选取最近一个进行中的账本
  */
 export function pickLatestActiveSharedBook(books) {
   const activeBooks = (books || []).filter(book => book && book.status !== 1);

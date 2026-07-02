@@ -6,7 +6,7 @@ const _sfc_main = {
     return {
       form: {
         type: 0,
-        // 0-个人账本，1-集体账本
+        // 0-个人账本，1-一起账本
         name: "",
         description: "",
         category: 0,
@@ -14,11 +14,11 @@ const _sfc_main = {
         isDefault: false,
         // 个人账本专用
         startDate: "",
-        // 集体账本专用
+        // 一起账本专用
         endDate: "",
-        // 集体账本专用
+        // 一起账本专用
         budget: "",
-        // 集体账本专用
+        // 一起账本专用
         defaultCurrency: 0,
         // 默认人民币
         enabledCurrencyIds: [0],
@@ -36,7 +36,7 @@ const _sfc_main = {
       linkedCategoryExpandedByType: {},
       // 按类型（支出/收入）分别控制是否展开，如 { '支出': true, '收入': false }
       editId: null,
-      // 编辑时传入的集体账本 id，有值时为编辑模式
+      // 编辑时传入的一起账本 id，有值时为编辑模式
       categoryOptions: [
         { value: 0, name: "日常消费", icon: "🏠" },
         { value: 1, name: "旅行", icon: "✈️" },
@@ -426,7 +426,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     f: $data.form.type === 0 ? "例如：我的日常账本" : "例如：2024年春节旅游",
     g: $data.form.name,
     h: common_vendor.o(($event) => $data.form.name = $event.detail.value, "17"),
-    i: $data.form.type === 0 ? "描述一下这个账本的用途（可选）" : "描述一下这个集体账本的用途（可选）",
+    i: $data.form.type === 0 ? "描述一下这个账本的用途（可选）" : "描述一下这个一起账本的用途（可选）",
     j: $data.form.description,
     k: common_vendor.o(($event) => $data.form.description = $event.detail.value, "19"),
     l: common_vendor.f($data.categoryOptions, (cat, k0, i0) => {
@@ -536,7 +536,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     F: $data.form.isDefault,
     G: common_vendor.o((...args) => $options.onIsDefaultChange && $options.onIsDefaultChange(...args), "17")
   } : {}, {
-    H: common_vendor.t($data.editId ? "保存" : $data.form.type === 0 ? "创建个人账本" : "创建集体账本"),
+    H: common_vendor.t($data.editId ? "保存" : $data.form.type === 0 ? "创建个人账本" : "创建一起账本"),
     I: common_vendor.o((...args) => $options.createAccountBook && $options.createAccountBook(...args), "b1"),
     J: $data.creating
   });

@@ -5,52 +5,72 @@
       <!-- 账本类型 + 账本选择器（卡片外部上方，同一行） -->
       <view class="header-row">
         <view class="account-type-switch" @click.stop>
-          <view class="switch-track">
+          <view class="switch-track switch-track--triple">
             <view
               class="switch-thumb"
-              :class="{ 'switch-thumb--right': accountBookTab === 'shared' }"
+              :class="{
+                'switch-thumb--pos-0': accountBookTab === 'all',
+                'switch-thumb--pos-1': accountBookTab === 'personal',
+                'switch-thumb--pos-2': accountBookTab === 'shared'
+              }"
             />
             <view class="switch-labels">
+              <view
+                class="switch-label"
+                :class="{ 'switch-label--active': accountBookTab === 'all' }"
+                @click="switchAccountBookTab('all')"
+              >
+                <text>全部</text>
+              </view>
               <view
                 class="switch-label"
                 :class="{ 'switch-label--active': accountBookTab === 'personal' }"
                 @click="switchAccountBookTab('personal')"
               >
-                <text>个人账本</text>
+                <text>个人</text>
               </view>
               <view
                 class="switch-label"
                 :class="{ 'switch-label--active': accountBookTab === 'shared' }"
                 @click="switchAccountBookTab('shared')"
               >
-                <text>集体账本</text>
+                <text>一起记</text>
               </view>
             </view>
           </view>
         </view>
         <view class="header-right">
-          <view 
-            class="account-book-selector" 
+          <view
+            v-if="accountBookTab === 'all'"
+            class="account-book-selector account-book-selector--static"
+          >
+            <text class="account-book-name">全部账本</text>
+          </view>
+          <view
+            v-else
+            class="account-book-selector"
             @click="openAccountBookPicker"
           >
             <text class="account-book-name">{{ currentBook?.name || '选择账本' }}</text>
             <text class="selector-arrow">▼</text>
           </view>
           <view class="add-book-btn" @click="goToCreateAccountBook">
-            <app-icon class="add-book-icon" name="plusempty" :size="18" color="#F5A623" />
+            <view class="add-book-icon-wrap">
+              <app-icon name="plusempty" :size="18" color="#FFFFFF" />
+            </view>
           </view>
         </view>
       </view>
       <!-- 账本统计卡片 -->
       <view class="stats-card">
         <view class="stats-content-wrapper">
-          <!-- 集体账本且无账本时显示引导 -->
+          <!-- 一起账本且无账本时显示引导 -->
           <view v-if="accountBookTab === 'shared' && !currentSharedBook" class="no-shared-book">
             <view class="empty-icon">
               <app-icon name="staff" :size="40" color="#F5A623" />
             </view>
-            <text class="empty-title">还没有集体账本</text>
-            <text class="empty-desc">创建或加入集体账本，和家人朋友一起记账</text>
+            <text class="empty-title">还没有一起账本</text>
+            <text class="empty-desc">创建或加入一起账本，和家人朋友一起记账</text>
             <view class="empty-btns">
               <view class="empty-btn primary" @click="goToCreateAccountBook">
                 <text>创建账本</text>
@@ -60,23 +80,25 @@
               </view>
             </view>
           </view>
-          <!-- 有统计内容时：个人账本 或 已选集体账本 -->
           <template v-else>
             <view class="stats-content">
               <view class="stat-item stat-item--expense">
                 <view class="stat-expense-header">
-                  <text class="stat-label">本月支出</text>
+                  <text class="stat-label">{{ accountBookTab === 'all' ? '本月总支出' : '本月支出' }}</text>
                   <view class="stat-amount-toggle" @click.stop="toggleStatsAmountVisibility">
                     <app-icon :name="showStatsAmount ? 'eye' : 'eye-off'" :size="18" color="#2b2b2b" />
                   </view>
                 </view>
                 <text class="stat-value expense">{{ showStatsAmount ? `￥${formatAmount(currentMonthExpense)}` : '￥****' }}</text>
               </view>
-              <view v-if="currentBook" class="stat-sub-row">
+              <view v-if="showStatsIncomeRow" class="stat-sub-row">
                 <text class="stat-sub-text">本月收入 {{ showStatsAmount ? `￥${formatAmount(currentMonthIncome)}` : '￥****' }}</text>
               </view>
-              <view v-if="currentBook" class="stat-sub-row">
-                <text class="stat-sub-text">预算剩余 {{ showStatsAmount ? `￥${(currentBudgetRemaining ?? 0).toFixed(2)}` : '￥****' }}</text>
+              <view v-if="accountBookTab === 'personal' && personalSharedExpenseYuan > 0" class="stat-sub-row">
+                <text class="stat-sub-text">含一起记 {{ showStatsAmount ? `￥${personalSharedExpenseYuan.toFixed(2)}` : '￥****' }}</text>
+              </view>
+              <view v-if="showBudgetRemaining" class="stat-sub-row">
+                <text class="stat-sub-text">{{ budgetRemainingLabel }} {{ showStatsAmount ? `￥${(currentBudgetRemaining ?? 0).toFixed(2)}` : '￥****' }}</text>
               </view>
             </view>
             <!-- <view class="stats-book-link" v-if="currentBook" @click="goToCurrentBookDetail">
@@ -146,6 +168,10 @@
               <text v-if="item.remark" class="transaction-remark">{{ item.remark }}</text>
               <view class="transaction-meta">
                 <text class="transaction-date">{{ formatDate(item.transactionDate, 'MM-DD') }}</text>
+                <text
+                  v-if="accountBookTab === 'all' && item.accountBookName"
+                  class="transaction-book-tag"
+                >{{ item.accountBookType === 1 ? '一起记' : '个人' }}·{{ item.accountBookName }}</text>
                 <text v-if="item.accountBookType === 1 && item.userName" class="transaction-creator">{{ item.userName }}</text>
               </view>
             </view>
@@ -217,7 +243,7 @@
     <view v-if="showSharedBookPicker" class="account-book-picker-modal" @click="showSharedBookPicker = false">
       <view class="picker-content" @click.stop>
         <view class="picker-header">
-          <text class="picker-title">选择集体账本</text>
+          <text class="picker-title">选择一起账本</text>
           <text class="picker-close" @click="showSharedBookPicker = false">×</text>
         </view>
         <scroll-view scroll-y class="picker-body" :show-scrollbar="false">
@@ -240,7 +266,7 @@
             </view>
           </view>
           <view v-else class="empty-account-books">
-            <text class="empty-text">还没有集体账本</text>
+            <text class="empty-text">还没有一起账本</text>
           </view>
           <view class="picker-body-pad" />
         </scroll-view>
@@ -255,6 +281,8 @@ import { formatDate, formatAmount, getDateRange, calculateTotal } from '@/utils/
 import { hideNativeTabBar } from '@/utils/tabBar';
 import { pickLatestActiveSharedBook } from '@/utils/accountBook';
 import { requireWechatLogin } from '@/utils/auth';
+import { goToAddTransaction } from '@/utils/navigation';
+import { recordHomeSelectedAccountBook, clearHomeSelectedAccountBook } from '@/utils/lastUsedAccountBook';
 import { mapState, mapActions } from 'vuex';
 import TransactionDetail from '@/components/transaction-detail/transaction-detail.vue';
 
@@ -269,21 +297,25 @@ export default {
       monthIncome: 0,
       loading: false,
       showAccountBookPicker: false,
-      showSharedBookPicker: false, // 集体账本选择器
-      allAccountBooks: [], // 所有账本（个人+集体）
+      showSharedBookPicker: false, // 一起账本选择器
+      allAccountBooks: [], // 所有账本（个人+一起）
       personalAccountBooks: [], // 个人账本
-      sharedAccountBooks: [], // 集体账本
+      sharedAccountBooks: [], // 一起账本
       showTransactionDetail: false, // 是否显示交易详情弹框
       selectedTransaction: null, // 选中的交易
-      allTransactionsCount: 0, // 所有交易记录总数
-      accountBookTab: 'personal', // 当前选项卡：'personal' 或 'shared'
-      currentSharedBook: null, // 当前选中的集体账本
-      sharedMonthExpense: 0, // 集体账本本月支出
-      sharedMonthIncome: 0, // 集体账本本月收入
-      sharedRecentTransactions: [], // 集体账本最近交易
-      sharedTransactionsCount: 0, // 集体账本交易总数
+      allTransactionsCount: 0,
+      accountBookTab: 'all',
+      allMonthExpense: 0,
+      allMonthIncome: 0,
+      allRecentTransactions: [],
+      currentSharedBook: null, // 当前选中的一起账本
+      sharedMonthExpense: 0, // 一起账本本月支出
+      sharedMonthIncome: 0, // 一起账本本月收入
+      sharedRecentTransactions: [], // 一起账本最近交易
+      sharedTransactionsCount: 0, // 一起账本交易总数
       periodSummary: null, // 昨日 / 今日 / 本周支出统计
-      showStatsAmount: true // 是否显示统计金额
+      showStatsAmount: true, // 是否显示统计金额
+      personalBudgetOverview: null // 个人预算概览（含一起记）
     };
   },
   computed: {
@@ -299,10 +331,17 @@ export default {
       return this.sharedMonthIncome - this.sharedMonthExpense;
     },
     budgetRemainingPersonal() {
+      if (this.personalBudgetOverview?.budgetRemaining != null) {
+        return Number(this.personalBudgetOverview.budgetRemaining);
+      }
       const budget = this.currentPersonalBook?.budget;
       if (budget == null || budget <= 0) return null;
       const expenseYuan = (this.monthExpense || 0) / 100;
       return Number((budget - expenseYuan).toFixed(2));
+    },
+    personalSharedExpenseYuan() {
+      if (this.accountBookTab !== 'personal') return 0;
+      return Number(this.personalBudgetOverview?.sharedPersonalExpense || 0);
     },
     budgetRemainingShared() {
       const budget = this.currentSharedBook?.budget;
@@ -320,24 +359,48 @@ export default {
       }
       return list[0] || null;
     },
-    // 当前选项卡对应的账本（个人或集体）
+    // 当前选项卡对应的账本（个人或一起；全部视图为 null）
     currentBook() {
-      return this.accountBookTab === 'personal' ? this.currentPersonalBook : this.currentSharedBook;
+      if (this.accountBookTab === 'all') return null;
+      if (this.accountBookTab === 'personal') return this.currentPersonalBook;
+      return this.currentSharedBook;
+    },
+    showStatsIncomeRow() {
+      if (this.accountBookTab === 'all') return true;
+      return !!this.currentBook;
     },
     // 当前选项卡的本月支出（分）
     currentMonthExpense() {
-      return this.accountBookTab === 'personal' ? this.monthExpense : this.sharedMonthExpense;
+      if (this.accountBookTab === 'all') return this.allMonthExpense;
+      if (this.accountBookTab === 'personal') return this.monthExpense;
+      return this.sharedMonthExpense;
     },
     // 当前选项卡的本月收入（分）
     currentMonthIncome() {
-      return this.accountBookTab === 'personal' ? this.monthIncome : this.sharedMonthIncome;
+      if (this.accountBookTab === 'all') return this.allMonthIncome;
+      if (this.accountBookTab === 'personal') return this.monthIncome;
+      return this.sharedMonthIncome;
     },
     // 当前选项卡的预算剩余（元）
     currentBudgetRemaining() {
-      return this.accountBookTab === 'personal' ? this.budgetRemainingPersonal : this.budgetRemainingShared;
+      if (this.accountBookTab === 'personal' || this.accountBookTab === 'all') {
+        return this.budgetRemainingPersonal;
+      }
+      return this.budgetRemainingShared;
+    },
+    showBudgetRemaining() {
+      if (this.currentBudgetRemaining == null) return false;
+      if (this.accountBookTab === 'all' || this.accountBookTab === 'personal') return true;
+      return !!this.currentBook;
+    },
+    budgetRemainingLabel() {
+      return this.accountBookTab === 'all' ? '个人预算剩余' : '预算剩余';
     },
     showPeriodSummary() {
       if (this.isGuestMode || !this.$store.state.token) return false;
+      if (this.accountBookTab === 'all') {
+        return this.pickerPersonalAccountBooks.length > 0 || this.pickerSharedAccountBooks.length > 0;
+      }
       return !!this.currentBook;
     },
     periodSummaryItems() {
@@ -360,13 +423,18 @@ export default {
     },
     // 根据选项卡显示对应的交易记录
     displayTransactions() {
+      if (this.accountBookTab === 'all') {
+        return this.allRecentTransactions;
+      }
       if (this.accountBookTab === 'shared') {
         return this.sharedRecentTransactions;
       }
       return this.recentTransactions;
     },
-    // 根据选项卡显示对应的交易总数
     displayTransactionsCount() {
+      if (this.accountBookTab === 'all') {
+        return this.allTransactionsCount;
+      }
       if (this.accountBookTab === 'shared') {
         return this.sharedTransactionsCount;
       }
@@ -380,7 +448,7 @@ export default {
     hideNativeTabBar();
     // 读取本地存储的选项卡状态
     const savedTab = uni.getStorageSync('accountBookTab');
-    if (savedTab && (savedTab === 'personal' || savedTab === 'shared')) {
+    if (savedTab === 'all' || savedTab === 'personal' || savedTab === 'shared') {
       this.accountBookTab = savedTab;
     }
     const savedStatsAmountVisible = uni.getStorageSync('statsAmountVisible');
@@ -391,12 +459,10 @@ export default {
     }
     // 页面显示时刷新数据（从其他页面返回时）
     this.loadData().then(() => {
-      // 如果是集体账本选项卡，加载集体账本数据
       if (this.accountBookTab === 'shared') {
         if (!this.currentSharedBook || this.currentSharedBook.status === 1) {
           this.applyDefaultSharedBook(this.sharedAccountBooks);
         }
-        this.loadSharedBookData();
       }
     });
   },
@@ -454,53 +520,180 @@ export default {
     },
     
     async loadData() {
-      // 如果是体验模式，不加载数据
       if (this.$store.state.isGuestMode || !this.$store.state.token) {
+        this.recentTransactions = [];
+        this.allRecentTransactions = [];
+        this.allTransactionsCount = 0;
+        this.monthExpense = 0;
+        this.monthIncome = 0;
+        this.allMonthExpense = 0;
+        this.allMonthIncome = 0;
+        this.periodSummary = null;
+        this.personalBudgetOverview = null;
+        return;
+      }
+
+      await this.loadAccountBooks();
+      await this.reloadTabData();
+    },
+
+    async reloadTabData() {
+      if (this.$store.state.isGuestMode || !this.$store.state.token) return;
+
+      this.loading = true;
+      try {
+        if (this.accountBookTab === 'all') {
+          await this.loadAllBooksData();
+        } else if (this.accountBookTab === 'shared') {
+          if (!this.currentSharedBook || this.currentSharedBook.status === 1) {
+            this.applyDefaultSharedBook(this.sharedAccountBooks);
+          }
+          await this.loadSharedBookData();
+        } else {
+          await this.loadPersonalBookData();
+        }
+      } catch (error) {
+        console.error('加载数据失败', error);
+        uni.showToast({ title: '加载失败', icon: 'none' });
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async loadAllBooksData() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+
+      try {
+        const overview = await api.transactions.getStatisticsOverview(year, month);
+        this.allMonthExpense = Math.round(Number(overview.totalExpense || 0) * 100);
+        this.allMonthIncome = Math.round(Number(overview.totalIncome || 0) * 100);
+      } catch (error) {
+        console.error('加载全账本统计失败', error);
+        this.allMonthExpense = 0;
+        this.allMonthIncome = 0;
+      }
+
+      const defaultPersonal = this.pickerPersonalAccountBooks.find(b => b.isDefault)
+        || this.pickerPersonalAccountBooks[0];
+      await this.fetchPersonalBudgetOverview(defaultPersonal?.id);
+
+      const activePersonal = this.pickerPersonalAccountBooks;
+      const activeShared = this.pickerSharedAccountBooks;
+      const allBooks = [
+        ...activePersonal.map(b => ({ ...b, type: 0 })),
+        ...activeShared.map(b => ({ ...b, type: 1 }))
+      ];
+
+      if (allBooks.length === 0) {
+        this.allRecentTransactions = [];
+        this.allTransactionsCount = 0;
+        this.periodSummary = null;
+        return;
+      }
+
+      const results = await Promise.all(allBooks.map(async (book) => {
+        try {
+          const txs = await api.transactions.getByAccountBook(book.id);
+          return txs.map(t => ({
+            ...t,
+            accountBookName: t.accountBookName || book.name,
+            accountBookType: t.accountBookType ?? book.type
+          }));
+        } catch (e) {
+          console.warn('加载账本交易失败', book.id, e);
+          return [];
+        }
+      }));
+
+      const merged = results
+        .flat()
+        .sort((a, b) => new Date(b.transactionDate) - new Date(a.transactionDate));
+
+      this.allTransactionsCount = merged.length;
+      this.allRecentTransactions = merged.slice(0, 8);
+      await this.loadAllPeriodSummary(allBooks);
+    },
+
+    async loadAllPeriodSummary(books) {
+      if (!books.length) {
+        this.periodSummary = null;
+        return;
+      }
+      try {
+        const summaries = await Promise.all(
+          books.map(b => api.transactions.getPeriodSummary(b.id).catch(() => null))
+        );
+        const sumExpense = (key) => summaries.reduce((acc, s) => {
+          if (!s || !s[key]) return acc;
+          return acc + (Number(s[key].expenseAmount) || 0);
+        }, 0);
+        this.periodSummary = {
+          yesterday: { expenseAmount: sumExpense('yesterday'), incomeAmount: 0, transactionCount: 0 },
+          today: { expenseAmount: sumExpense('today'), incomeAmount: 0, transactionCount: 0 },
+          thisWeek: { expenseAmount: sumExpense('thisWeek'), incomeAmount: 0, transactionCount: 0 }
+        };
+      } catch (error) {
+        console.error('加载全账本周期统计失败', error);
+        this.periodSummary = null;
+      }
+    },
+
+    async fetchPersonalBudgetOverview(personalAccountBookId) {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      try {
+        const budgetOverview = await api.transactions.getPersonalBudgetOverview(
+          year,
+          month,
+          personalAccountBookId ?? undefined
+        );
+        this.personalBudgetOverview = budgetOverview;
+        return budgetOverview;
+      } catch (error) {
+        console.error('加载个人预算概览失败', error);
+        this.personalBudgetOverview = null;
+        return null;
+      }
+    },
+
+    async loadPersonalBookData() {
+      const book = this.currentPersonalBook;
+      if (!book) {
         this.recentTransactions = [];
         this.allTransactionsCount = 0;
         this.monthExpense = 0;
         this.monthIncome = 0;
         this.periodSummary = null;
+        this.personalBudgetOverview = null;
         return;
       }
-      
-      // 先加载账本列表
-      await this.loadAccountBooks();
-      
-      if (!this.currentAccountBook) {
-        return;
+
+      if (this.currentAccountBook?.id !== book.id) {
+        this.setCurrentAccountBook(book);
       }
-      
-      this.loading = true;
-      
-      try {
-        // 获取本月交易记录
+
+      const budgetOverview = await this.fetchPersonalBudgetOverview(book.id);
+      if (budgetOverview) {
+        this.monthExpense = Math.round(Number(budgetOverview.totalPersonalExpense || 0) * 100);
+        this.monthIncome = Math.round(Number(budgetOverview.totalPersonalIncome || 0) * 100);
+      } else {
         const dateRange = getDateRange('month');
         const transactions = await api.transactions.getByDateRange(
-          this.currentAccountBook.id,
+          book.id,
           dateRange.startDate,
           dateRange.endDate
         );
-        
-        // 计算本月收支
-        this.monthExpense = calculateTotal(transactions, 0) * 100; // 转为分
+        this.monthExpense = calculateTotal(transactions, 0) * 100;
         this.monthIncome = calculateTotal(transactions, 1) * 100;
-        
-        // 获取所有交易记录，取最近10条展示
-        const allTransactions = await api.transactions.getByAccountBook(this.currentAccountBook.id);
-        this.allTransactionsCount = allTransactions.length;
-        this.recentTransactions = allTransactions.slice(0, 8);
-        await this.loadPeriodSummary(this.currentAccountBook.id);
-        
-      } catch (error) {
-        console.error('加载数据失败', error);
-        uni.showToast({
-          title: '加载失败',
-          icon: 'none'
-        });
-      } finally {
-        this.loading = false;
       }
+
+      const allTransactions = await api.transactions.getByAccountBook(book.id);
+      this.allTransactionsCount = allTransactions.length;
+      this.recentTransactions = allTransactions.slice(0, 8);
+      await this.loadPeriodSummary(book.id);
     },
     
     async loadAccountBooks() {
@@ -516,12 +709,12 @@ export default {
         // 加载个人账本
         const personalBooks = await api.accountBooks.getList();
         
-        // 加载集体账本
+        // 加载一起账本
         let sharedBooks = [];
         try {
           sharedBooks = await api.sharedAccountBooks.getList();
         } catch (error) {
-          console.error('加载集体账本失败', error);
+          console.error('加载一起账本失败', error);
         }
         
         // 合并所有账本
@@ -537,7 +730,7 @@ export default {
           }
         }
         
-        // 设置默认集体账本（最近一个进行中的）
+        // 设置默认一起账本（最近一个进行中的）
         if (!this.currentSharedBook || this.currentSharedBook.status === 1) {
           this.applyDefaultSharedBook(sharedBooks);
         }
@@ -550,14 +743,10 @@ export default {
     switchAccountBookTab(tab) {
       this.accountBookTab = tab;
       uni.setStorageSync('accountBookTab', tab);
-      if (tab === 'shared') {
-        if (!this.currentSharedBook || this.currentSharedBook.status === 1) {
-          this.applyDefaultSharedBook(this.sharedAccountBooks);
-        }
-        this.loadSharedBookData();
-      } else if (this.currentPersonalBook?.id) {
-        this.loadPeriodSummary(this.currentPersonalBook.id);
+      if (tab === 'all') {
+        clearHomeSelectedAccountBook();
       }
+      this.reloadTabData();
     },
     
     openAccountBookPicker() {
@@ -568,7 +757,7 @@ export default {
       }
     },
     
-    // 加载集体账本数据
+    // 加载一起账本数据
     async loadSharedBookData() {
       if (!this.currentSharedBook) {
         this.sharedRecentTransactions = [];
@@ -591,7 +780,7 @@ export default {
             if (idx >= 0) this.sharedAccountBooks[idx] = full;
           }
         } catch (e) {
-          console.warn('拉取集体账本详情失败', e);
+          console.warn('拉取一起账本详情失败', e);
         }
       }
       
@@ -630,7 +819,7 @@ export default {
         this.sharedRecentTransactions = allTransactions.slice(0, 8);
         await this.loadPeriodSummary(book.id);
       } catch (error) {
-        console.error('加载集体账本数据失败', error);
+        console.error('加载一起账本数据失败', error);
         this.sharedMonthExpense = 0;
         this.sharedMonthIncome = 0;
         this.sharedRecentTransactions = [];
@@ -639,23 +828,24 @@ export default {
       }
     },
     
-    // 选择集体账本
+    // 选择一起账本
     selectSharedBook(book) {
+      recordHomeSelectedAccountBook({ ...book, type: 1 });
       this.setCurrentSharedBook(book);
       this.showSharedBookPicker = false;
       this.loadSharedBookData();
     },
     
     selectAccountBook(accountBook) {
+      recordHomeSelectedAccountBook({ ...accountBook, type: 0 });
       this.setCurrentAccountBook(accountBook);
       this.showAccountBookPicker = false;
-      // 重新加载数据
-      this.loadData();
+      this.reloadTabData();
     },
     
     getAccountBookTypeText(accountBook) {
       if (!accountBook) return '';
-      return accountBook.type === 0 ? '个人' : '集体';
+      return accountBook.type === 0 ? '个人' : '一起记';
     },
     
     goToAccountBooks() {
@@ -690,11 +880,15 @@ export default {
         url: `/pages/shared-account-book-detail/shared-account-book-detail?id=${this.currentPersonalBook.id}&type=0`
       });
     },
-    /** 进入当前选项卡对应的账本详情（个人/集体统一入口） */
+    /** 进入当前选项卡对应的账本详情（个人/一起统一入口） */
     goToCurrentBookDetail() {
+      if (this.accountBookTab === 'all') {
+        this.goToStatistics();
+        return;
+      }
       if (!this.currentBook) {
         uni.showToast({
-          title: this.accountBookTab === 'shared' ? '请先选择集体账本' : '请先选择账本',
+          title: this.accountBookTab === 'shared' ? '请先选择一起账本' : '请先选择账本',
           icon: 'none'
         });
         return;
@@ -728,11 +922,8 @@ export default {
       if (!requireWechatLogin()) {
         return;
       }
-      // 设置切换到AI tab的标志
       this.$store.dispatch('setSwitchToAITab', true);
-      uni.navigateTo({
-        url: '/pages/add-transaction/add-transaction'
-      });
+      goToAddTransaction(0);
     },
     
     goToStatistics() {
@@ -748,12 +939,15 @@ export default {
     },
     
     viewAllTransactions() {
-      // 根据选项卡跳转到对应账本详情页
+      if (this.accountBookTab === 'all') {
+        this.goToStatistics();
+        return;
+      }
       if (this.accountBookTab === 'shared') {
-        // 集体账本
+        // 一起账本
         if (!this.currentSharedBook) {
           uni.showToast({
-            title: '请先选择集体账本',
+            title: '请先选择一起账本',
             icon: 'none'
           });
           return;
@@ -877,6 +1071,14 @@ export default {
   border: 1rpx solid rgba(255, 255, 255, 0.38);
 }
 
+.switch-track--triple {
+  width: 300rpx;
+  height: 54rpx;
+  border-radius: 27rpx;
+  background: #F3F3F3;
+  border: 1rpx solid #ECECEC;
+}
+
 .switch-thumb {
   position: absolute;
   top: 3rpx;
@@ -885,10 +1087,26 @@ export default {
   height: calc(100% - 6rpx);
   background: #F5A623;
   border-radius: 26rpx;
-  box-shadow: 0 1rpx 6rpx rgba(0, 0, 0, 0.1);
   transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1;
   pointer-events: none;
+}
+
+.switch-track--triple .switch-thumb {
+  width: calc(33.333% - 2rpx);
+  border-radius: 25rpx;
+}
+
+.switch-thumb--pos-0 {
+  left: 3rpx;
+}
+
+.switch-thumb--pos-1 {
+  left: calc(33.333% + 1rpx);
+}
+
+.switch-thumb--pos-2 {
+  left: calc(66.666% + 0rpx);
 }
 
 .switch-thumb--right {
@@ -908,10 +1126,18 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22rpx;
+  font-size: 20rpx;
   font-weight: 600;
   color: #666666;
   transition: color 0.2s ease;
+}
+
+.switch-track--triple .switch-label {
+  font-size: 22rpx;
+}
+
+.switch-track--triple .switch-label--active {
+  font-size: 24rpx;
 }
 
 .switch-label--active {
@@ -932,15 +1158,19 @@ export default {
   padding: 10rpx 18rpx;
   background: #ffffff;
   border-radius: 32rpx;
+
+  &.account-book-selector--static {
+    opacity: 0.92;
+  }
   
   .account-book-name {
     font-size: 28rpx;
+    font-weight: 600;
     color: #333333;
     max-width: 240rpx;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-weight: 600;
   }
   
   .selector-arrow {
@@ -953,23 +1183,25 @@ export default {
   width: 36rpx;
   height: 36rpx;
   border-radius: 50%;
-  background: #FFFFFF;
+  background: #F5A623;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
   transition: all 0.3s;
   
   &:active {
     opacity: 0.9;
   }
-  
-  .add-book-icon {
+
+  .add-book-icon-wrap {
     display: flex;
     align-items: center;
     justify-content: center;
-    line-height: 1;
-    transform: translateY(-2rpx);
+    width: 100%;
+    height: 100%;
+    transform: translateY(-4rpx);
   }
 }
 
@@ -1693,6 +1925,14 @@ export default {
           .transaction-date {
             font-size: 23rpx;
             color: #999999;
+          }
+
+          .transaction-book-tag {
+            font-size: 22rpx;
+            color: #B8860B;
+            background: rgba(245, 166, 35, 0.12);
+            padding: 2rpx 10rpx;
+            border-radius: 6rpx;
           }
           
           .transaction-creator {

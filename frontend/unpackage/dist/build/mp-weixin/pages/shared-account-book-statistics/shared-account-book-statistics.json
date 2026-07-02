@@ -1,6 +1,6 @@
 {
   "navigationBarTitleText": "统计",
-  "navigationBarBackgroundColor": "#95E1D3",
+  "navigationBarBackgroundColor": "#F5A623",
   "navigationBarTextStyle": "white",
   "usingComponents": {
     "app-icon": "../../components/app-icon/app-icon"

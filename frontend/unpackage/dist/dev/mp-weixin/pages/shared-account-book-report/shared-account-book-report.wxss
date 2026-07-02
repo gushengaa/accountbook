@@ -378,17 +378,17 @@
   border: 2rpx solid #E5FFE5;
 }
 .summary-grid .summary-item.income.data-v-bcfb8c69::before {
-  background: linear-gradient(90deg, #5CB85C 0%, #6ED4CD 100%);
+  background: linear-gradient(90deg, #5CB85C 0%, #7BC87E 100%);
 }
 .summary-grid .summary-item.income .summary-icon.data-v-bcfb8c69 {
-  background: linear-gradient(135deg, #5CB85C 0%, #6ED4CD 100%);
+  background: linear-gradient(135deg, #5CB85C 0%, #7BC87E 100%);
 }
 .summary-grid .summary-item.income .summary-value.data-v-bcfb8c69 {
   color: #5CB85C;
 }
 .summary-grid .summary-item.balance.data-v-bcfb8c69 {
-  background: linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 100%);
-  border: 2rpx solid #E5F5FF;
+  background: linear-gradient(135deg, #FFF8EB 0%, #FFFFFF 100%);
+  border: 2rpx solid #F5E8D0;
 }
 .summary-grid .summary-item.balance.data-v-bcfb8c69::before {
   background: linear-gradient(90deg, #F5A623 0%, #F7B84D 100%);

@@ -5,6 +5,8 @@ const utils_util = require("../../utils/util.js");
 const utils_tabBar = require("../../utils/tabBar.js");
 const utils_accountBook = require("../../utils/accountBook.js");
 const utils_auth = require("../../utils/auth.js");
+const utils_navigation = require("../../utils/navigation.js");
+const utils_lastUsedAccountBook = require("../../utils/lastUsedAccountBook.js");
 const TransactionDetail = () => "../../components/transaction-detail/transaction-detail.js";
 const _sfc_main = {
   components: {
@@ -18,33 +20,36 @@ const _sfc_main = {
       loading: false,
       showAccountBookPicker: false,
       showSharedBookPicker: false,
-      // 集体账本选择器
+      // 一起账本选择器
       allAccountBooks: [],
-      // 所有账本（个人+集体）
+      // 所有账本（个人+一起）
       personalAccountBooks: [],
       // 个人账本
       sharedAccountBooks: [],
-      // 集体账本
+      // 一起账本
       showTransactionDetail: false,
       // 是否显示交易详情弹框
       selectedTransaction: null,
       // 选中的交易
       allTransactionsCount: 0,
-      // 所有交易记录总数
-      accountBookTab: "personal",
-      // 当前选项卡：'personal' 或 'shared'
+      accountBookTab: "all",
+      allMonthExpense: 0,
+      allMonthIncome: 0,
+      allRecentTransactions: [],
       currentSharedBook: null,
-      // 当前选中的集体账本
+      // 当前选中的一起账本
       sharedMonthExpense: 0,
-      // 集体账本本月支出
+      // 一起账本本月支出
       sharedMonthIncome: 0,
-      // 集体账本本月收入
+      // 一起账本本月收入
       sharedRecentTransactions: [],
-      // 集体账本最近交易
+      // 一起账本最近交易
       sharedTransactionsCount: 0,
-      // 集体账本交易总数
-      periodSummary: null
+      // 一起账本交易总数
+      periodSummary: null,
       // 昨日 / 今日 / 本周支出统计
+      showStatsAmount: true
+      // 是否显示统计金额
     };
   },
   computed: {
@@ -86,32 +91,45 @@ const _sfc_main = {
       }
       return list[0] || null;
     },
-    // 当前选项卡对应的账本（个人或集体）
+    // 当前选项卡对应的账本（个人或一起；全部视图为 null）
     currentBook() {
-      return this.accountBookTab === "personal" ? this.currentPersonalBook : this.currentSharedBook;
+      if (this.accountBookTab === "all")
+        return null;
+      if (this.accountBookTab === "personal")
+        return this.currentPersonalBook;
+      return this.currentSharedBook;
+    },
+    showStatsIncomeRow() {
+      if (this.accountBookTab === "all")
+        return true;
+      return !!this.currentBook;
     },
     // 当前选项卡的本月支出（分）
     currentMonthExpense() {
-      return this.accountBookTab === "personal" ? this.monthExpense : this.sharedMonthExpense;
+      if (this.accountBookTab === "all")
+        return this.allMonthExpense;
+      if (this.accountBookTab === "personal")
+        return this.monthExpense;
+      return this.sharedMonthExpense;
     },
     // 当前选项卡的本月收入（分）
     currentMonthIncome() {
-      return this.accountBookTab === "personal" ? this.monthIncome : this.sharedMonthIncome;
+      if (this.accountBookTab === "all")
+        return this.allMonthIncome;
+      if (this.accountBookTab === "personal")
+        return this.monthIncome;
+      return this.sharedMonthIncome;
     },
     // 当前选项卡的预算剩余（元）
     currentBudgetRemaining() {
       return this.accountBookTab === "personal" ? this.budgetRemainingPersonal : this.budgetRemainingShared;
     },
-    // 收支概况标题：集体账本有起止日期时显示日期范围，否则显示本月
-    statsTitle() {
-      if (this.accountBookTab === "shared") {
-        return `总收支概况`;
-      }
-      return "本月收支概况";
-    },
     showPeriodSummary() {
       if (this.isGuestMode || !this.$store.state.token)
         return false;
+      if (this.accountBookTab === "all") {
+        return this.pickerPersonalAccountBooks.length > 0 || this.pickerSharedAccountBooks.length > 0;
+      }
       return !!this.currentBook;
     },
     periodSummaryItems() {
@@ -134,13 +152,18 @@ const _sfc_main = {
     },
     // 根据选项卡显示对应的交易记录
     displayTransactions() {
+      if (this.accountBookTab === "all") {
+        return this.allRecentTransactions;
+      }
       if (this.accountBookTab === "shared") {
         return this.sharedRecentTransactions;
       }
       return this.recentTransactions;
     },
-    // 根据选项卡显示对应的交易总数
     displayTransactionsCount() {
+      if (this.accountBookTab === "all") {
+        return this.allTransactionsCount;
+      }
       if (this.accountBookTab === "shared") {
         return this.sharedTransactionsCount;
       }
@@ -153,15 +176,20 @@ const _sfc_main = {
   onShow() {
     utils_tabBar.hideNativeTabBar();
     const savedTab = common_vendor.index.getStorageSync("accountBookTab");
-    if (savedTab && (savedTab === "personal" || savedTab === "shared")) {
+    if (savedTab === "all" || savedTab === "personal" || savedTab === "shared") {
       this.accountBookTab = savedTab;
+    }
+    const savedStatsAmountVisible = common_vendor.index.getStorageSync("statsAmountVisible");
+    if (savedStatsAmountVisible === false || savedStatsAmountVisible === "false") {
+      this.showStatsAmount = false;
+    } else if (savedStatsAmountVisible === true || savedStatsAmountVisible === "true") {
+      this.showStatsAmount = true;
     }
     this.loadData().then(() => {
       if (this.accountBookTab === "shared") {
         if (!this.currentSharedBook || this.currentSharedBook.status === 1) {
           this.applyDefaultSharedBook(this.sharedAccountBooks);
         }
-        this.loadSharedBookData();
       }
     });
   },
@@ -172,6 +200,10 @@ const _sfc_main = {
   },
   methods: {
     ...common_vendor.mapActions(["setCurrentAccountBook", "updateAccountBooks", "setCurrentSharedAccountBook"]),
+    toggleStatsAmountVisibility() {
+      this.showStatsAmount = !this.showStatsAmount;
+      common_vendor.index.setStorageSync("statsAmountVisible", this.showStatsAmount);
+    },
     formatDate: utils_util.formatDate,
     formatAmount: utils_util.formatAmount,
     applyDefaultSharedBook(books) {
@@ -200,7 +232,7 @@ const _sfc_main = {
           this.periodSummary = summary;
         }
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/index/index.vue:447", "加载周期统计失败", error);
+        common_vendor.index.__f__("error", "at pages/index/index.vue:490", "加载周期统计失败", error);
         if (((_b = this.currentBook) == null ? void 0 : _b.id) === bookId) {
           this.periodSummary = {
             yesterday: { expenseAmount: 0, incomeAmount: 0, transactionCount: 0 },
@@ -213,39 +245,133 @@ const _sfc_main = {
     async loadData() {
       if (this.$store.state.isGuestMode || !this.$store.state.token) {
         this.recentTransactions = [];
+        this.allRecentTransactions = [];
+        this.allTransactionsCount = 0;
+        this.monthExpense = 0;
+        this.monthIncome = 0;
+        this.allMonthExpense = 0;
+        this.allMonthIncome = 0;
+        this.periodSummary = null;
+        return;
+      }
+      await this.loadAccountBooks();
+      await this.reloadTabData();
+    },
+    async reloadTabData() {
+      if (this.$store.state.isGuestMode || !this.$store.state.token)
+        return;
+      this.loading = true;
+      try {
+        if (this.accountBookTab === "all") {
+          await this.loadAllBooksData();
+        } else if (this.accountBookTab === "shared") {
+          if (!this.currentSharedBook || this.currentSharedBook.status === 1) {
+            this.applyDefaultSharedBook(this.sharedAccountBooks);
+          }
+          await this.loadSharedBookData();
+        } else {
+          await this.loadPersonalBookData();
+        }
+      } catch (error) {
+        common_vendor.index.__f__("error", "at pages/index/index.vue:534", "加载数据失败", error);
+        common_vendor.index.showToast({ title: "加载失败", icon: "none" });
+      } finally {
+        this.loading = false;
+      }
+    },
+    async loadAllBooksData() {
+      const now = /* @__PURE__ */ new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      try {
+        const overview = await utils_api.api.transactions.getStatisticsOverview(year, month);
+        this.allMonthExpense = Math.round(Number(overview.totalExpense || 0) * 100);
+        this.allMonthIncome = Math.round(Number(overview.totalIncome || 0) * 100);
+      } catch (error) {
+        common_vendor.index.__f__("error", "at pages/index/index.vue:551", "加载全账本统计失败", error);
+        this.allMonthExpense = 0;
+        this.allMonthIncome = 0;
+      }
+      const activePersonal = this.pickerPersonalAccountBooks;
+      const activeShared = this.pickerSharedAccountBooks;
+      const allBooks = [
+        ...activePersonal.map((b) => ({ ...b, type: 0 })),
+        ...activeShared.map((b) => ({ ...b, type: 1 }))
+      ];
+      if (allBooks.length === 0) {
+        this.allRecentTransactions = [];
+        this.allTransactionsCount = 0;
+        this.periodSummary = null;
+        return;
+      }
+      const results = await Promise.all(allBooks.map(async (book) => {
+        try {
+          const txs = await utils_api.api.transactions.getByAccountBook(book.id);
+          return txs.map((t) => ({
+            ...t,
+            accountBookName: t.accountBookName || book.name,
+            accountBookType: t.accountBookType ?? book.type
+          }));
+        } catch (e) {
+          common_vendor.index.__f__("warn", "at pages/index/index.vue:579", "加载账本交易失败", book.id, e);
+          return [];
+        }
+      }));
+      const merged = results.flat().sort((a, b) => new Date(b.transactionDate) - new Date(a.transactionDate));
+      this.allTransactionsCount = merged.length;
+      this.allRecentTransactions = merged.slice(0, 8);
+      await this.loadAllPeriodSummary(allBooks);
+    },
+    async loadAllPeriodSummary(books) {
+      if (!books.length) {
+        this.periodSummary = null;
+        return;
+      }
+      try {
+        const summaries = await Promise.all(
+          books.map((b) => utils_api.api.transactions.getPeriodSummary(b.id).catch(() => null))
+        );
+        const sumExpense = (key) => summaries.reduce((acc, s) => {
+          if (!s || !s[key])
+            return acc;
+          return acc + (Number(s[key].expenseAmount) || 0);
+        }, 0);
+        this.periodSummary = {
+          yesterday: { expenseAmount: sumExpense("yesterday"), incomeAmount: 0, transactionCount: 0 },
+          today: { expenseAmount: sumExpense("today"), incomeAmount: 0, transactionCount: 0 },
+          thisWeek: { expenseAmount: sumExpense("thisWeek"), incomeAmount: 0, transactionCount: 0 }
+        };
+      } catch (error) {
+        common_vendor.index.__f__("error", "at pages/index/index.vue:612", "加载全账本周期统计失败", error);
+        this.periodSummary = null;
+      }
+    },
+    async loadPersonalBookData() {
+      var _a;
+      const book = this.currentPersonalBook;
+      if (!book) {
+        this.recentTransactions = [];
         this.allTransactionsCount = 0;
         this.monthExpense = 0;
         this.monthIncome = 0;
         this.periodSummary = null;
         return;
       }
-      await this.loadAccountBooks();
-      if (!this.currentAccountBook) {
-        return;
+      if (((_a = this.currentAccountBook) == null ? void 0 : _a.id) !== book.id) {
+        this.setCurrentAccountBook(book);
       }
-      this.loading = true;
-      try {
-        const dateRange = utils_util.getDateRange("month");
-        const transactions = await utils_api.api.transactions.getByDateRange(
-          this.currentAccountBook.id,
-          dateRange.startDate,
-          dateRange.endDate
-        );
-        this.monthExpense = utils_util.calculateTotal(transactions, 0) * 100;
-        this.monthIncome = utils_util.calculateTotal(transactions, 1) * 100;
-        const allTransactions = await utils_api.api.transactions.getByAccountBook(this.currentAccountBook.id);
-        this.allTransactionsCount = allTransactions.length;
-        this.recentTransactions = allTransactions.slice(0, 8);
-        await this.loadPeriodSummary(this.currentAccountBook.id);
-      } catch (error) {
-        common_vendor.index.__f__("error", "at pages/index/index.vue:498", "加载数据失败", error);
-        common_vendor.index.showToast({
-          title: "加载失败",
-          icon: "none"
-        });
-      } finally {
-        this.loading = false;
-      }
+      const dateRange = utils_util.getDateRange("month");
+      const transactions = await utils_api.api.transactions.getByDateRange(
+        book.id,
+        dateRange.startDate,
+        dateRange.endDate
+      );
+      this.monthExpense = utils_util.calculateTotal(transactions, 0) * 100;
+      this.monthIncome = utils_util.calculateTotal(transactions, 1) * 100;
+      const allTransactions = await utils_api.api.transactions.getByAccountBook(book.id);
+      this.allTransactionsCount = allTransactions.length;
+      this.recentTransactions = allTransactions.slice(0, 8);
+      await this.loadPeriodSummary(book.id);
     },
     async loadAccountBooks() {
       if (this.$store.state.isGuestMode || !this.$store.state.token) {
@@ -260,7 +386,7 @@ const _sfc_main = {
         try {
           sharedBooks = await utils_api.api.sharedAccountBooks.getList();
         } catch (error) {
-          common_vendor.index.__f__("error", "at pages/index/index.vue:526", "加载集体账本失败", error);
+          common_vendor.index.__f__("error", "at pages/index/index.vue:666", "加载一起账本失败", error);
         }
         this.allAccountBooks = [...personalBooks, ...sharedBooks];
         this.personalAccountBooks = personalBooks;
@@ -275,22 +401,17 @@ const _sfc_main = {
           this.applyDefaultSharedBook(sharedBooks);
         }
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/index/index.vue:547", "加载账本失败", error);
+        common_vendor.index.__f__("error", "at pages/index/index.vue:687", "加载账本失败", error);
       }
     },
     // 切换账本类型选项卡
     switchAccountBookTab(tab) {
-      var _a;
       this.accountBookTab = tab;
       common_vendor.index.setStorageSync("accountBookTab", tab);
-      if (tab === "shared") {
-        if (!this.currentSharedBook || this.currentSharedBook.status === 1) {
-          this.applyDefaultSharedBook(this.sharedAccountBooks);
-        }
-        this.loadSharedBookData();
-      } else if ((_a = this.currentPersonalBook) == null ? void 0 : _a.id) {
-        this.loadPeriodSummary(this.currentPersonalBook.id);
+      if (tab === "all") {
+        utils_lastUsedAccountBook.clearHomeSelectedAccountBook();
       }
+      this.reloadTabData();
     },
     openAccountBookPicker() {
       if (this.accountBookTab === "personal") {
@@ -299,7 +420,7 @@ const _sfc_main = {
         this.showSharedBookPicker = true;
       }
     },
-    // 加载集体账本数据
+    // 加载一起账本数据
     async loadSharedBookData() {
       if (!this.currentSharedBook) {
         this.sharedRecentTransactions = [];
@@ -322,7 +443,7 @@ const _sfc_main = {
               this.sharedAccountBooks[idx] = full;
           }
         } catch (e) {
-          common_vendor.index.__f__("warn", "at pages/index/index.vue:596", "拉取集体账本详情失败", e);
+          common_vendor.index.__f__("warn", "at pages/index/index.vue:732", "拉取一起账本详情失败", e);
         }
       }
       try {
@@ -348,7 +469,7 @@ const _sfc_main = {
         this.sharedRecentTransactions = allTransactions.slice(0, 8);
         await this.loadPeriodSummary(book.id);
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/index/index.vue:635", "加载集体账本数据失败", error);
+        common_vendor.index.__f__("error", "at pages/index/index.vue:771", "加载一起账本数据失败", error);
         this.sharedMonthExpense = 0;
         this.sharedMonthIncome = 0;
         this.sharedRecentTransactions = [];
@@ -356,21 +477,23 @@ const _sfc_main = {
         this.periodSummary = null;
       }
     },
-    // 选择集体账本
+    // 选择一起账本
     selectSharedBook(book) {
+      utils_lastUsedAccountBook.recordHomeSelectedAccountBook({ ...book, type: 1 });
       this.setCurrentSharedBook(book);
       this.showSharedBookPicker = false;
       this.loadSharedBookData();
     },
     selectAccountBook(accountBook) {
+      utils_lastUsedAccountBook.recordHomeSelectedAccountBook({ ...accountBook, type: 0 });
       this.setCurrentAccountBook(accountBook);
       this.showAccountBookPicker = false;
-      this.loadData();
+      this.reloadTabData();
     },
     getAccountBookTypeText(accountBook) {
       if (!accountBook)
         return "";
-      return accountBook.type === 0 ? "个人" : "集体";
+      return accountBook.type === 0 ? "个人" : "一起记";
     },
     goToAccountBooks() {
       common_vendor.index.navigateTo({
@@ -400,11 +523,15 @@ const _sfc_main = {
         url: `/pages/shared-account-book-detail/shared-account-book-detail?id=${this.currentPersonalBook.id}&type=0`
       });
     },
-    /** 进入当前选项卡对应的账本详情（个人/集体统一入口） */
+    /** 进入当前选项卡对应的账本详情（个人/一起统一入口） */
     goToCurrentBookDetail() {
+      if (this.accountBookTab === "all") {
+        this.goToStatistics();
+        return;
+      }
       if (!this.currentBook) {
         common_vendor.index.showToast({
-          title: this.accountBookTab === "shared" ? "请先选择集体账本" : "请先选择账本",
+          title: this.accountBookTab === "shared" ? "请先选择一起账本" : "请先选择账本",
           icon: "none"
         });
         return;
@@ -436,9 +563,7 @@ const _sfc_main = {
         return;
       }
       this.$store.dispatch("setSwitchToAITab", true);
-      common_vendor.index.navigateTo({
-        url: "/pages/add-transaction/add-transaction"
-      });
+      utils_navigation.goToAddTransaction(0);
     },
     goToStatistics() {
       common_vendor.index.switchTab({
@@ -451,10 +576,14 @@ const _sfc_main = {
       });
     },
     viewAllTransactions() {
+      if (this.accountBookTab === "all") {
+        this.goToStatistics();
+        return;
+      }
       if (this.accountBookTab === "shared") {
         if (!this.currentSharedBook) {
           common_vendor.index.showToast({
-            title: "请先选择集体账本",
+            title: "请先选择一起账本",
             icon: "none"
           });
           return;
@@ -514,79 +643,86 @@ if (!Math) {
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   var _a;
   return common_vendor.e({
-    a: $data.accountBookTab === "shared" ? 1 : "",
+    a: $data.accountBookTab === "all" ? 1 : "",
     b: $data.accountBookTab === "personal" ? 1 : "",
-    c: common_vendor.o(($event) => $options.switchAccountBookTab("personal"), "39"),
-    d: $data.accountBookTab === "shared" ? 1 : "",
-    e: common_vendor.o(($event) => $options.switchAccountBookTab("shared"), "88"),
-    f: common_vendor.o(() => {
-    }, "69"),
-    g: common_vendor.t(((_a = $options.currentBook) == null ? void 0 : _a.name) || "选择账本"),
-    h: common_vendor.o((...args) => $options.openAccountBookPicker && $options.openAccountBookPicker(...args), "f1"),
-    i: common_vendor.p({
+    c: $data.accountBookTab === "shared" ? 1 : "",
+    d: $data.accountBookTab === "all" ? 1 : "",
+    e: common_vendor.o(($event) => $options.switchAccountBookTab("all"), "8a"),
+    f: $data.accountBookTab === "personal" ? 1 : "",
+    g: common_vendor.o(($event) => $options.switchAccountBookTab("personal"), "4e"),
+    h: $data.accountBookTab === "shared" ? 1 : "",
+    i: common_vendor.o(($event) => $options.switchAccountBookTab("shared"), "04"),
+    j: common_vendor.o(() => {
+    }, "26"),
+    k: $data.accountBookTab === "all"
+  }, $data.accountBookTab === "all" ? {} : {
+    l: common_vendor.t(((_a = $options.currentBook) == null ? void 0 : _a.name) || "选择账本"),
+    m: common_vendor.o((...args) => $options.openAccountBookPicker && $options.openAccountBookPicker(...args), "85")
+  }, {
+    n: common_vendor.p({
       name: "plusempty",
       size: 18,
-      color: "#F5A623"
+      color: "#FFFFFF"
     }),
-    j: common_vendor.o((...args) => $options.goToCreateAccountBook && $options.goToCreateAccountBook(...args), "25"),
-    k: $data.accountBookTab === "shared" && !$data.currentSharedBook
+    o: common_vendor.o((...args) => $options.goToCreateAccountBook && $options.goToCreateAccountBook(...args), "f9"),
+    p: $data.accountBookTab === "shared" && !$data.currentSharedBook
   }, $data.accountBookTab === "shared" && !$data.currentSharedBook ? {
-    l: common_vendor.p({
+    q: common_vendor.p({
       name: "staff",
       size: 40,
       color: "#F5A623"
     }),
-    m: common_vendor.o((...args) => $options.goToCreateAccountBook && $options.goToCreateAccountBook(...args), "90"),
-    n: common_vendor.o((...args) => $options.goToJoinAccountBook && $options.goToJoinAccountBook(...args), "98")
+    r: common_vendor.o((...args) => $options.goToCreateAccountBook && $options.goToCreateAccountBook(...args), "45"),
+    s: common_vendor.o((...args) => $options.goToJoinAccountBook && $options.goToJoinAccountBook(...args), "a8")
   } : common_vendor.e({
-    o: common_vendor.t($options.statsTitle),
-    p: common_vendor.t($options.formatAmount($options.currentMonthExpense)),
-    q: $options.currentBook && $options.currentMonthIncome > 0
-  }, $options.currentBook && $options.currentMonthIncome > 0 ? {
-    r: common_vendor.t($options.formatAmount($options.currentMonthIncome))
+    t: common_vendor.t($data.accountBookTab === "all" ? "本月总支出" : "本月支出"),
+    v: common_vendor.p({
+      name: $data.showStatsAmount ? "eye" : "eye-off",
+      size: 18,
+      color: "#2b2b2b"
+    }),
+    w: common_vendor.o((...args) => $options.toggleStatsAmountVisibility && $options.toggleStatsAmountVisibility(...args), "06"),
+    x: common_vendor.t($data.showStatsAmount ? `￥${$options.formatAmount($options.currentMonthExpense)}` : "￥****"),
+    y: $options.showStatsIncomeRow
+  }, $options.showStatsIncomeRow ? {
+    z: common_vendor.t($data.showStatsAmount ? `￥${$options.formatAmount($options.currentMonthIncome)}` : "￥****")
   } : {}, {
-    s: $options.currentBook && $options.currentBook.budget > 0
-  }, $options.currentBook && $options.currentBook.budget > 0 ? {
-    t: common_vendor.t(($options.currentBudgetRemaining ?? 0).toFixed(2))
-  } : {}, {
-    v: $options.currentBook
-  }, $options.currentBook ? {
-    w: common_vendor.t($options.displayTransactionsCount),
-    x: common_vendor.t(">"),
-    y: common_vendor.o((...args) => $options.goToCurrentBookDetail && $options.goToCurrentBookDetail(...args), "79")
+    A: $options.currentBook && $options.currentBudgetRemaining != null
+  }, $options.currentBook && $options.currentBudgetRemaining != null ? {
+    B: common_vendor.t($data.showStatsAmount ? `￥${($options.currentBudgetRemaining ?? 0).toFixed(2)}` : "￥****")
   } : {}), {
-    z: _ctx.isGuestMode
+    C: _ctx.isGuestMode
   }, _ctx.isGuestMode ? {
-    A: common_vendor.o((...args) => $options.goToLogin && $options.goToLogin(...args), "e4")
+    D: common_vendor.o((...args) => $options.goToLogin && $options.goToLogin(...args), "b7")
   } : {}, {
-    B: $options.showPeriodSummary
+    E: $options.showPeriodSummary
   }, $options.showPeriodSummary ? {
-    C: common_vendor.p({
+    F: common_vendor.p({
       name: "bars",
       size: 16,
       color: "#F5A623"
     }),
-    D: common_vendor.f($options.periodSummaryItems, (item, k0, i0) => {
+    G: common_vendor.f($options.periodSummaryItems, (item, k0, i0) => {
       return {
         a: common_vendor.t(item.expenseAmount.toFixed(2)),
         b: common_vendor.t(item.label),
         c: item.key
       };
     }),
-    E: common_vendor.o((...args) => $options.goToStatistics && $options.goToStatistics(...args), "16")
+    H: common_vendor.o((...args) => $options.goToStatistics && $options.goToStatistics(...args), "ed")
   } : {}, {
-    F: common_vendor.p({
+    I: common_vendor.p({
       name: "list",
       size: 16,
       color: "#F5A623"
     }),
-    G: common_vendor.t(">"),
-    H: common_vendor.o((...args) => $options.viewAllTransactions && $options.viewAllTransactions(...args), "f2"),
-    I: $options.displayTransactions.length === 0
+    J: common_vendor.t(">"),
+    K: common_vendor.o((...args) => $options.viewAllTransactions && $options.viewAllTransactions(...args), "c8"),
+    L: $options.displayTransactions.length === 0
   }, $options.displayTransactions.length === 0 ? {} : {
-    J: common_vendor.f($options.displayTransactions, (item, k0, i0) => {
+    M: common_vendor.f($options.displayTransactions, (item, k0, i0) => {
       return common_vendor.e({
-        a: "1cf27b2a-4-" + i0,
+        a: "1cf27b2a-5-" + i0,
         b: common_vendor.p({
           icon: item.categoryIcon,
           ["category-name"]: item.categoryName,
@@ -600,42 +736,47 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         f: common_vendor.t(item.remark)
       } : {}, {
         g: common_vendor.t($options.formatDate(item.transactionDate, "MM-DD")),
-        h: item.accountBookType === 1 && item.userName
-      }, item.accountBookType === 1 && item.userName ? {
-        i: common_vendor.t(item.userName)
+        h: $data.accountBookTab === "all" && item.accountBookName
+      }, $data.accountBookTab === "all" && item.accountBookName ? {
+        i: common_vendor.t(item.accountBookType === 1 ? "一起记" : "个人"),
+        j: common_vendor.t(item.accountBookName)
       } : {}, {
-        j: common_vendor.t(item.type === 0 ? "-" : "+"),
-        k: common_vendor.t(item.amount.toFixed(2)),
-        l: common_vendor.n(item.type === 0 ? "expense" : "income"),
-        m: item.accountBookType === 1 && item.type === 0 && (item.allocations || []).length > 0
+        k: item.accountBookType === 1 && item.userName
+      }, item.accountBookType === 1 && item.userName ? {
+        l: common_vendor.t(item.userName)
+      } : {}, {
+        m: common_vendor.t(item.type === 0 ? "-" : "+"),
+        n: common_vendor.t(item.amount.toFixed(2)),
+        o: common_vendor.n(item.type === 0 ? "expense" : "income"),
+        p: item.accountBookType === 1 && item.type === 0 && (item.allocations || []).length > 0
       }, item.accountBookType === 1 && item.type === 0 && (item.allocations || []).length > 0 ? {
-        n: common_vendor.f(item.allocations || [], (a, k1, i1) => {
+        q: common_vendor.f(item.allocations || [], (a, k1, i1) => {
           return {
             a: common_vendor.t((a.userName || "?").charAt(0)),
             b: a.userId
           };
         })
       } : {}, {
-        o: item.id,
-        p: common_vendor.o(($event) => $options.viewTransaction(item), item.id)
+        r: item.id,
+        s: common_vendor.o(($event) => $options.viewTransaction(item), item.id)
       });
     })
   }, {
-    K: !$options.showPeriodSummary ? 1 : "",
-    L: common_vendor.o($options.closeTransactionDetail, "b7"),
-    M: common_vendor.p({
+    N: !$options.showPeriodSummary ? 1 : "",
+    O: common_vendor.o($options.closeTransactionDetail, "4f"),
+    P: common_vendor.p({
       visible: $data.showTransactionDetail,
       transaction: $data.selectedTransaction
     }),
-    N: common_vendor.p({
+    Q: common_vendor.p({
       current: 0
     }),
-    O: $data.showAccountBookPicker
+    R: $data.showAccountBookPicker
   }, $data.showAccountBookPicker ? common_vendor.e({
-    P: common_vendor.o(($event) => $data.showAccountBookPicker = false, "21"),
-    Q: $options.pickerPersonalAccountBooks.length > 0
+    S: common_vendor.o(($event) => $data.showAccountBookPicker = false, "d3"),
+    T: $options.pickerPersonalAccountBooks.length > 0
   }, $options.pickerPersonalAccountBooks.length > 0 ? {
-    R: common_vendor.f($options.pickerPersonalAccountBooks, (book, k0, i0) => {
+    U: common_vendor.f($options.pickerPersonalAccountBooks, (book, k0, i0) => {
       var _a2, _b, _c, _d, _e, _f;
       return common_vendor.e({
         a: common_vendor.t(book.name),
@@ -655,18 +796,18 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       });
     })
   } : {}, {
-    S: $options.pickerPersonalAccountBooks.length === 0
+    V: $options.pickerPersonalAccountBooks.length === 0
   }, $options.pickerPersonalAccountBooks.length === 0 ? {} : {}, {
-    T: common_vendor.o(() => {
-    }, "fa"),
-    U: common_vendor.o(($event) => $data.showAccountBookPicker = false, "cb")
+    W: common_vendor.o(() => {
+    }, "b9"),
+    X: common_vendor.o(($event) => $data.showAccountBookPicker = false, "d6")
   }) : {}, {
-    V: $data.showSharedBookPicker
+    Y: $data.showSharedBookPicker
   }, $data.showSharedBookPicker ? common_vendor.e({
-    W: common_vendor.o(($event) => $data.showSharedBookPicker = false, "40"),
-    X: $options.pickerSharedAccountBooks.length > 0
+    Z: common_vendor.o(($event) => $data.showSharedBookPicker = false, "5a"),
+    aa: $options.pickerSharedAccountBooks.length > 0
   }, $options.pickerSharedAccountBooks.length > 0 ? {
-    Y: common_vendor.f($options.pickerSharedAccountBooks, (book, k0, i0) => {
+    ab: common_vendor.f($options.pickerSharedAccountBooks, (book, k0, i0) => {
       var _a2, _b, _c;
       return common_vendor.e({
         a: common_vendor.t(book.name),
@@ -683,9 +824,9 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       });
     })
   } : {}, {
-    Z: common_vendor.o(() => {
-    }, "88"),
-    aa: common_vendor.o(($event) => $data.showSharedBookPicker = false, "0f")
+    ac: common_vendor.o(() => {
+    }, "78"),
+    ad: common_vendor.o(($event) => $data.showSharedBookPicker = false, "79")
   }) : {});
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render], ["__scopeId", "data-v-1cf27b2a"]]);

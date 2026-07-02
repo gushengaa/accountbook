@@ -123,7 +123,7 @@
     {
       "path": "pages/shared-account-books/shared-account-books",
       "style": {
-        "navigationBarTitleText": "集体账本",
+        "navigationBarTitleText": "一起账本",
         "navigationBarBackgroundColor": "#F5A623",
         "navigationBarTextStyle": "white"
       }
@@ -139,7 +139,7 @@
     {
       "path": "pages/shared-account-book-detail/shared-account-book-detail",
       "style": {
-        "navigationBarTitleText": "集体账本详情",
+        "navigationBarTitleText": "一起账本详情",
         "navigationBarBackgroundColor": "#F5A623",
         "navigationBarTextStyle": "white"
       }
@@ -148,7 +148,7 @@
       "path": "pages/shared-account-book-statistics/shared-account-book-statistics",
       "style": {
         "navigationBarTitleText": "统计",
-        "navigationBarBackgroundColor": "#95E1D3",
+        "navigationBarBackgroundColor": "#F5A623",
         "navigationBarTextStyle": "white"
       }
     },

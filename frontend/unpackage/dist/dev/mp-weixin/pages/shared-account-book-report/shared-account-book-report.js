@@ -97,14 +97,14 @@ const _sfc_main = {
     var _a;
     if ((_a = this.report) == null ? void 0 : _a.accountBook) {
       return {
-        title: `${this.report.accountBook.name} - 集体账本报告`,
+        title: `${this.report.accountBook.name} - 一起账本报告`,
         path: `/pages/shared-account-book-report/shared-account-book-report?id=${this.accountBookId}`,
         imageUrl: "/static/share-report.jpg"
         // 可以设置分享图片URL
       };
     }
     return {
-      title: "集体账本报告",
+      title: "一起账本报告",
       path: "/pages/index/index"
     };
   },
@@ -417,7 +417,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   return common_vendor.e({
     a: $data.loading
   }, $data.loading ? {} : common_vendor.e({
-    b: common_vendor.t(((_b = (_a = $data.report) == null ? void 0 : _a.accountBook) == null ? void 0 : _b.name) || "集体账本报告"),
+    b: common_vendor.t(((_b = (_a = $data.report) == null ? void 0 : _a.accountBook) == null ? void 0 : _b.name) || "一起账本报告"),
     c: common_vendor.t($options.formatDate((_c = $data.report) == null ? void 0 : _c.generatedAt)),
     d: $data.viewType === "all" ? 1 : "",
     e: common_vendor.o(($event) => $options.switchViewType("all"), "af"),

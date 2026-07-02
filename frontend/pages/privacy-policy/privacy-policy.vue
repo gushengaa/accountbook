@@ -95,18 +95,18 @@
       </view>
       
       <view class="section">
-        <text class="section-title">五、账本集体功能</text>
+        <text class="section-title">五、一起记账功能</text>
         <text class="section-content">
-          1. 当您使用账本集体功能时，您可以选择将账本分享给其他用户。
+          1. 当您使用一起记账功能时，您可以选择将账本分享给其他用户。
         </text>
         <text class="section-content">
-          2. 被分享的用户可以查看和编辑集体账本中的记账数据。
+          2. 被分享的用户可以查看和编辑一起账本中的记账数据。
         </text>
         <text class="section-content">
-          3. 请您谨慎选择集体对象，并注意保护您的隐私信息。
+          3. 请您谨慎选择一起记账的对象，并注意保护您的隐私信息。
         </text>
         <text class="section-content">
-          4. 您可以随时取消集体或退出集体账本。
+          4. 您可以随时退出一起账本。
         </text>
       </view>
       

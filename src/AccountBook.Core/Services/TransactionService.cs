@@ -201,7 +201,7 @@ public class TransactionService : ITransactionService
             throw new Exception("无权限访问该账本");
 
         if (accountBook.Type == 1 && !accountBook.Members.Any(m => m.UserId == userId))
-            throw new Exception("无权限访问该集体账本");
+            throw new Exception("无权限访问该一起账本");
 
         var result = await _context.Transactions
             .Where(t => t.AccountBookId == accountBookId)
@@ -257,7 +257,7 @@ public class TransactionService : ITransactionService
             throw new Exception("无权限访问该账本");
 
         if (accountBook.Type == 1 && !accountBook.Members.Any(m => m.UserId == userId))
-            throw new Exception("无权限访问该集体账本");
+            throw new Exception("无权限访问该一起账本");
 
         var result = await _context.Transactions
             .Where(t => t.AccountBookId == accountBookId &&
@@ -314,7 +314,7 @@ public class TransactionService : ITransactionService
             throw new Exception("无权限访问该账本");
 
         if (accountBook.Type == 1 && !accountBook.Members.Any(m => m.UserId == userId))
-            throw new Exception("无权限访问该集体账本");
+            throw new Exception("无权限访问该一起账本");
 
         var cached = await _cacheHelper.GetPeriodSummaryAsync(accountBookId);
         if (cached != null)
@@ -514,6 +514,107 @@ public class TransactionService : ITransactionService
 
         await _cacheHelper.SetUserOverviewAsync(userId, year, month, overview);
         return overview;
+    }
+
+    public async Task<PersonalBudgetOverviewDto> GetPersonalBudgetOverviewAsync(
+        int userId, int year, int month, int? personalAccountBookId = null)
+    {
+        if (month < 1 || month > 12)
+            throw new ArgumentException("月份无效");
+
+        var personalBook = await ResolvePersonalAccountBookAsync(userId, personalAccountBookId);
+        var chinaTz = GetChinaTimeZone();
+        var startLocal = new DateTime(year, month, 1);
+        var endLocal = startLocal.AddMonths(1);
+        var startUtc = TimeZoneInfo.ConvertTimeToUtc(startLocal, chinaTz);
+        var endUtc = TimeZoneInfo.ConvertTimeToUtc(endLocal, chinaTz);
+
+        decimal personalBookExpense = 0;
+        decimal personalBookIncome = 0;
+        if (personalBook != null)
+        {
+            var personalTxs = await _readContext.Transactions
+                .AsNoTracking()
+                .Where(t => t.AccountBookId == personalBook.Id
+                            && t.TransactionDate >= startUtc
+                            && t.TransactionDate < endUtc)
+                .Select(t => new { t.Amount, t.Type })
+                .ToListAsync();
+            personalBookExpense = personalTxs.Where(t => t.Type == 0).Sum(t => t.Amount) / 100.0m;
+            personalBookIncome = personalTxs.Where(t => t.Type == 1).Sum(t => t.Amount) / 100.0m;
+        }
+
+        var sharedBookIds = await _readContext.AccountBookMembers
+            .AsNoTracking()
+            .Where(m => m.UserId == userId && m.AccountBook.Type == 1)
+            .Select(m => m.AccountBookId)
+            .Distinct()
+            .ToListAsync();
+
+        decimal sharedPersonalExpense = 0;
+        decimal sharedPersonalIncome = 0;
+        if (sharedBookIds.Count > 0)
+        {
+            var sharedTxs = await _readContext.Transactions
+                .AsNoTracking()
+                .Where(t => sharedBookIds.Contains(t.AccountBookId)
+                            && t.UserId == userId
+                            && t.TransactionDate >= startUtc
+                            && t.TransactionDate < endUtc)
+                .Select(t => new { t.Amount, t.Type })
+                .ToListAsync();
+            sharedPersonalExpense = sharedTxs.Where(t => t.Type == 0).Sum(t => t.Amount) / 100.0m;
+            sharedPersonalIncome = sharedTxs.Where(t => t.Type == 1).Sum(t => t.Amount) / 100.0m;
+        }
+
+        var totalExpense = personalBookExpense + sharedPersonalExpense;
+        var totalIncome = personalBookIncome + sharedPersonalIncome;
+        decimal? budget = personalBook?.Budget.HasValue == true
+            ? personalBook.Budget.Value / 100.0m
+            : null;
+        decimal? budgetRemaining = budget.HasValue ? budget.Value - totalExpense : null;
+
+        var overview = new PersonalBudgetOverviewDto
+        {
+            Year = year,
+            Month = month,
+            PersonalAccountBookId = personalBook?.Id,
+            Budget = budget,
+            PersonalBookExpense = personalBookExpense,
+            SharedPersonalExpense = sharedPersonalExpense,
+            TotalPersonalExpense = totalExpense,
+            BudgetRemaining = budgetRemaining,
+            PersonalBookIncome = personalBookIncome,
+            SharedPersonalIncome = sharedPersonalIncome,
+            TotalPersonalIncome = totalIncome
+        };
+
+        return overview;
+    }
+
+    private async Task<AccountBook.Shared.Models.AccountBook?> ResolvePersonalAccountBookAsync(
+        int userId, int? personalAccountBookId)
+    {
+        if (personalAccountBookId.HasValue)
+        {
+            var specified = await _readContext.AccountBooks
+                .AsNoTracking()
+                .FirstOrDefaultAsync(ab => ab.Id == personalAccountBookId.Value
+                                           && ab.UserId == userId
+                                           && ab.Type == 0);
+            if (specified != null)
+                return specified;
+        }
+
+        return await _readContext.AccountBooks
+                   .AsNoTracking()
+                   .Where(ab => ab.UserId == userId && ab.Type == 0 && ab.IsDefault)
+                   .FirstOrDefaultAsync()
+               ?? await _readContext.AccountBooks
+                   .AsNoTracking()
+                   .Where(ab => ab.UserId == userId && ab.Type == 0)
+                   .OrderBy(ab => ab.Id)
+                   .FirstOrDefaultAsync();
     }
 
     private static List<CategoryStatisticsDto> BuildTopLevelCategoryStatistics(
@@ -790,7 +891,7 @@ public class TransactionService : ITransactionService
 
         // 集体账本：必须是成员
         if (accountBook.Type == 1 && !accountBook.Members.Any(m => m.UserId == userId))
-            throw new Exception("无权限访问该集体账本");
+            throw new Exception("无权限访问该一起账本");
 
         // 验证分类
         await _categoryService.ValidateCategoryForTransactionAsync(userId, request.AccountBookId, request.CategoryId, request.Type);

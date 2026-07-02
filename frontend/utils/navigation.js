@@ -2,6 +2,7 @@ import store from '@/store';
 import { api } from '@/utils/api';
 import { pickLatestActiveSharedBook } from '@/utils/accountBook';
 import { requireWechatLogin } from '@/utils/auth';
+import { resolveAccountBookForAdd } from '@/utils/lastUsedAccountBook';
 
 function normalizeSharedBook(book) {
   return {
@@ -25,10 +26,26 @@ async function resolveSharedAccountBook() {
       return normalizedBook;
     }
   } catch (error) {
-    console.error('加载集体账本失败', error);
+    console.error('加载一起账本失败', error);
   }
 
   return null;
+}
+
+async function loadBooksForResolve() {
+  let personalAccountBooks = [];
+  let sharedAccountBooks = [];
+  try {
+    personalAccountBooks = await api.accountBooks.getList();
+  } catch (e) {
+    console.error('加载个人账本失败', e);
+  }
+  try {
+    sharedAccountBooks = await api.sharedAccountBooks.getList();
+  } catch (e) {
+    console.error('加载一起账本失败', e);
+  }
+  return { personalAccountBooks, sharedAccountBooks };
 }
 
 /**
@@ -39,35 +56,31 @@ export async function goToAddTransaction(type = 0) {
     return;
   }
 
-  const accountBookTab = uni.getStorageSync('accountBookTab') || 'personal';
-  let accountBookId = null;
-  let accountBookType = 0;
+  const accountBookTab = uni.getStorageSync('accountBookTab') || 'all';
+  const { personalAccountBooks, sharedAccountBooks } = await loadBooksForResolve();
 
-  if (accountBookTab === 'shared') {
-    const book = await resolveSharedAccountBook();
-    if (!book) {
-      uni.showToast({
-        title: '还没有进行中的集体账本',
-        icon: 'none'
-      });
-      return;
-    }
-    accountBookId = book.id;
-    accountBookType = 1;
-  } else {
-    const book = store.state.currentAccountBook;
-    if (!book) {
-      uni.showToast({
-        title: '请先选择账本',
-        icon: 'none'
-      });
-      return;
-    }
-    accountBookId = book.id;
-    accountBookType = book.type || 0;
+  let currentSharedAccountBook = store.state.currentSharedAccountBook;
+  if (accountBookTab === 'shared' && (!currentSharedAccountBook || currentSharedAccountBook.status === 1)) {
+    currentSharedAccountBook = await resolveSharedAccountBook();
+  }
+
+  const resolved = resolveAccountBookForAdd({
+    accountBookTab,
+    currentAccountBook: store.state.currentAccountBook,
+    currentSharedAccountBook,
+    personalAccountBooks,
+    sharedAccountBooks
+  });
+
+  if (!resolved) {
+    uni.showToast({
+      title: accountBookTab === 'shared' ? '还没有进行中的一起账本' : '请先创建账本',
+      icon: 'none'
+    });
+    return;
   }
 
   uni.navigateTo({
-    url: `/pages/add-transaction/add-transaction?type=${type}&accountBookId=${accountBookId}&accountBookType=${accountBookType}`
+    url: `/pages/add-transaction/add-transaction?type=${type}&accountBookId=${resolved.id}&accountBookType=${resolved.type}`
   });
 }

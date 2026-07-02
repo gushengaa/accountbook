@@ -27,10 +27,11 @@
     </view>
 
     <!-- 账本简要信息 -->
-    <view class="book-strip" v-if="displayAccountBook">
+    <view class="book-strip" v-if="displayAccountBook" @click="openBookPicker">
       <app-icon :icon="getCategoryIcon(displayAccountBook.category)" :size="16" color="#666666" />
       <text class="book-strip-name">{{ displayAccountBook.name }}</text>
-      <text class="book-strip-tag">{{ displayAccountBook.type === 1 ? '集体' : '个人' }}</text>
+      <text class="book-strip-tag">{{ displayAccountBook.type === 1 ? '一起记' : '个人' }}</text>
+      <text class="book-strip-change">切换</text>
     </view>
 
     <!-- 分类网格（4列圆形图标） -->
@@ -111,7 +112,7 @@
       </view>
     </view>
 
-    <!-- 分摊对象（集体账本支出，键盘上方） -->
+    <!-- 分摊对象（一起账本支出，键盘上方） -->
     <view v-if="showAllocationBar" class="keypad-allocation-bar">
       <view class="keypad-allocation-label">
         <app-icon name="team" :size="18" color="#999999" />
@@ -443,6 +444,29 @@
       </view>
     </view>
 
+    <!-- 账本选择弹窗（底部弹出） -->
+    <view v-if="showBookPicker" class="book-picker-mask" @click="showBookPicker = false">
+      <view class="book-picker-sheet" @click.stop>
+        <view class="picker-header-inline">
+          <text class="picker-title-inline">选择记账账本</text>
+          <text class="picker-close-inline" @click="showBookPicker = false">×</text>
+        </view>
+        <scroll-view scroll-y class="book-picker-scroll" :show-scrollbar="false">
+          <view
+            v-for="book in bookPickerOptions"
+            :key="`${book.type}-${book.id}`"
+            class="book-picker-item"
+            :class="{ active: isSameBook(displayAccountBook, book) }"
+            @click="selectBookFromPicker(book)"
+          >
+            <text class="book-picker-name">{{ book.name }}</text>
+            <text class="book-picker-tag">{{ book.type === 1 ? '一起记' : '个人' }}</text>
+          </view>
+          <view class="book-picker-scroll-pad" />
+        </scroll-view>
+      </view>
+    </view>
+
     <!-- 支付方式选择抽屉 -->
     <view v-if="showPaymentDialog" class="category-drawer-mask" @click="closePaymentDialog">
       <view class="category-drawer-panel" @click.stop>
@@ -520,6 +544,7 @@ import {
   getLastCategoryId,
   recordLastTransactionPrefs
 } from '@/utils/lastTransactionPrefs';
+import { recordLastUsedAccountBook, resolveAccountBookForAdd } from '@/utils/lastUsedAccountBook';
 import { mapState } from 'vuex';
 
 export default {
@@ -529,17 +554,17 @@ export default {
     isAccountBookEnded() {
       return this.displayAccountBook?.status === 1;
     },
-    // 获取当前显示的账本（优先从首页传递的账本，其次集体账本，最后个人账本）
+    // 获取当前显示的账本（优先从首页传递的账本，其次一起账本，最后个人账本）
     displayAccountBook() {
       // 优先使用从首页传递过来的账本信息
       if (this.selectedAccountBook) {
         return this.selectedAccountBook;
       }
-      // 其次从 Vuex 中获取集体账本（从详情页跳转过来）
+      // 其次从 Vuex 中获取一起账本（从详情页跳转过来）
       if (this.currentSharedAccountBook && this.currentSharedAccountBook.type === 1) {
         return this.currentSharedAccountBook;
       }
-      // 如果有集体账本ID参数，使用集体账本（兼容旧方式）
+      // 如果有一起账本ID参数，使用一起账本（兼容旧方式）
       if (this.sharedAccountBookId && this.currentSharedAccountBook) {
         return this.currentSharedAccountBook;
       }
@@ -610,7 +635,7 @@ export default {
 
       return items;
     },
-    // 集体账本成员列表（用于分摊对象选择）
+    // 一起账本成员列表（用于分摊对象选择）
     allocationMembers() {
       const book = this.displayAccountBook;
       if (!book || book.type !== 1 || !book.members || !Array.isArray(book.members)) return [];
@@ -707,7 +732,7 @@ export default {
       saving: false,
       images: [], // { storageUrl, displayUrl }
       uploading: false, // 是否正在上传
-      sharedAccountBookId: null, // 集体账本ID（从URL参数获取）
+      sharedAccountBookId: null, // 一起账本ID（从URL参数获取）
       selectedAccountBook: null, // 从首页选择的账本
       // 支付方式列表（从 API 加载，以下为兜底）
       paymentMethods: [
@@ -729,7 +754,7 @@ export default {
       tempPaymentMethod: 0,
       isRecording: false, // 是否正在录音
       recordingManager: null, // 录音管理器
-      allocationUserIds: [], // 分摊对象用户ID（仅集体账本支出）
+      allocationUserIds: [], // 分摊对象用户ID（仅一起账本支出）
       showCategoryDrawer: false, // 全部分类抽屉
       drawerSelectedCategoryId: null, // 抽屉内临时选中分类
       drawerSelectedParentId: null,
@@ -743,11 +768,13 @@ export default {
         name: '',
         icon: '📝',
         color: '#F5A623'
-      }
+      },
+      showBookPicker: false,
+      bookPickerOptions: []
     };
   },
   onLoad(options) {
-    // 获取集体账本ID（如果有，兼容旧方式）
+    // 获取一起账本ID（如果有，兼容旧方式）
     if (options.sharedAccountBookId) {
       this.sharedAccountBookId = parseInt(options.sharedAccountBookId);
     }
@@ -768,7 +795,7 @@ export default {
       this.loadAccountBookById(accountBookId, accountBookType);
       // 分类在 loadAccountBookById 内加载，确保使用该账本的关联类别
     } else {
-      this.loadCategories();
+      this.resolveDefaultAccountBookIfNeeded();
     }
     this.loadCurrencies();
     this.loadPaymentMethods();
@@ -941,7 +968,7 @@ export default {
       this.amount = '';
       this.amountExpression = '';
       this.selectedCurrency = 0; // 重置币种为人民币
-      // 分摊对象默认全部选中（集体账本支出时）
+      // 分摊对象默认全部选中（一起账本支出时）
       const members = this.allocationMembers;
       this.allocationUserIds = members && members.length > 0 ? members.map(m => m.userId) : [];
       this.remark = '';
@@ -1043,6 +1070,37 @@ export default {
       }
     },
 
+    async resolveDefaultAccountBookIfNeeded() {
+      const accountBookTab = uni.getStorageSync('accountBookTab') || 'all';
+      let personalAccountBooks = [];
+      let sharedAccountBooks = [];
+      try {
+        personalAccountBooks = await api.accountBooks.getList();
+      } catch (e) {
+        console.error('加载个人账本失败', e);
+      }
+      try {
+        sharedAccountBooks = await api.sharedAccountBooks.getList();
+      } catch (e) {
+        console.error('加载一起账本失败', e);
+      }
+
+      const resolved = resolveAccountBookForAdd({
+        accountBookTab,
+        currentAccountBook: this.currentAccountBook,
+        currentSharedAccountBook: this.currentSharedAccountBook,
+        personalAccountBooks,
+        sharedAccountBooks
+      });
+
+      if (resolved) {
+        await this.loadAccountBookById(resolved.id, resolved.type);
+        return;
+      }
+
+      this.loadCategories();
+    },
+
     saveLastTransactionPrefs(categoryId, paymentMethod, transactionType = this.transactionType) {
       const book = this.displayAccountBook;
       if (!book || book.id == null) return;
@@ -1050,6 +1108,41 @@ export default {
         categoryId,
         paymentMethod
       });
+      recordLastUsedAccountBook(book);
+    },
+
+    isSameBook(a, b) {
+      if (!a || !b) return false;
+      return a.id === b.id && (a.type ?? 0) === (b.type ?? 0);
+    },
+
+    async openBookPicker() {
+      try {
+        const personal = await api.accountBooks.getList();
+        let shared = [];
+        try {
+          shared = await api.sharedAccountBooks.getList();
+        } catch (e) {
+          console.warn('加载一起账本失败', e);
+        }
+        this.bookPickerOptions = [
+          ...personal.filter(b => b.status !== 1).map(b => ({ ...b, type: 0 })),
+          ...shared.filter(b => b.status !== 1).map(b => ({ ...b, type: 1 }))
+        ];
+        if (!this.bookPickerOptions.length) {
+          uni.showToast({ title: '暂无可用账本', icon: 'none' });
+          return;
+        }
+        this.showBookPicker = true;
+      } catch (error) {
+        console.error('加载账本列表失败', error);
+        uni.showToast({ title: '加载账本失败', icon: 'none' });
+      }
+    },
+
+    async selectBookFromPicker(book) {
+      this.showBookPicker = false;
+      await this.loadAccountBookById(book.id, book.type ?? 0);
     },
     
     // 加载币种列表（优先使用当前账本的启用币种与默认币种）
@@ -1093,7 +1186,7 @@ export default {
         let accountBook = null;
         
         if (accountBookType === 1) {
-          // 集体账本
+          // 一起账本
           accountBook = await api.sharedAccountBooks.getById(accountBookId);
         } else {
           // 个人账本
@@ -2096,6 +2189,120 @@ export default {
     border-radius: 8rpx;
     flex-shrink: 0;
   }
+
+  .book-strip-change {
+    font-size: 20rpx;
+    color: #999999;
+    flex-shrink: 0;
+  }
+}
+
+.book-picker-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+}
+
+.book-picker-sheet {
+  width: 100%;
+  max-height: 70vh;
+  background: #FFFFFF;
+  border-radius: 32rpx 32rpx 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: book-picker-slide-up 0.28s ease-out;
+}
+
+.book-picker-scroll {
+  flex: 1;
+  min-height: 0;
+  max-height: calc(70vh - 100rpx);
+  box-sizing: border-box;
+  padding-top: 24rpx;
+}
+
+.book-picker-scroll-pad {
+  height: 24rpx;
+}
+
+@keyframes book-picker-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.picker-header-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 32rpx 28rpx 24rpx;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+
+.picker-title-inline {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333333;
+}
+
+.picker-close-inline {
+  font-size: 40rpx;
+  color: #999999;
+  line-height: 1;
+}
+
+.book-picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 24rpx 16rpx;
+  padding: 24rpx 28rpx;
+  background: #F5F5F5;
+  border-radius: 16rpx;
+
+  &.active {
+    background: linear-gradient(135deg, #F5A623 0%, #F7B84D 100%);
+
+    .book-picker-name {
+      color: #FFFFFF;
+    }
+
+    .book-picker-tag {
+      color: #FFFFFF;
+      background: rgba(255, 255, 255, 0.25);
+    }
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.book-picker-name {
+  font-size: 28rpx;
+  color: #333333;
+  flex: 1;
+  margin-right: 16rpx;
+}
+
+.book-picker-tag {
+  font-size: 22rpx;
+  color: #F5A623;
+  background: rgba(245, 166, 35, 0.12);
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
 }
 
 .category-scroll {
@@ -2227,7 +2434,7 @@ export default {
     .amount-cursor {
       width: 4rpx;
       height: 44rpx;
-      background: #4A9EFF;
+      background: #F5A623;
       margin-left: 4rpx;
       animation: cursor-blink 1s step-end infinite;
     }

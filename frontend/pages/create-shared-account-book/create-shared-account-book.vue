@@ -17,7 +17,7 @@
           @click="form.type = 1"
         >
           <!-- <text class="type-icon">👥</text> -->
-          <text class="type-name">集体账本</text>
+          <text class="type-name">一起账本</text>
         </view>
       </view>
     </view>
@@ -37,7 +37,7 @@
       <textarea 
         class="form-textarea" 
         v-model="form.description"
-        :placeholder="form.type === 0 ? '描述一下这个账本的用途（可选）' : '描述一下这个集体账本的用途（可选）'"
+        :placeholder="form.type === 0 ? '描述一下这个账本的用途（可选）' : '描述一下这个一起账本的用途（可选）'"
         maxlength="100"
       />
     </view>
@@ -71,7 +71,7 @@
       <text class="form-hint">设置预算可以帮助控制支出</text>
     </view>
     
-    <!-- 集体账本特有字段 -->
+    <!-- 一起账本特有字段 -->
     <template v-if="form.type === 1">
       <view class="form-section">
         <text class="form-label">开始日期（可选）</text>
@@ -227,7 +227,7 @@
     </view>
     <view class="submit-section">
       <button class="submit-btn" @click="createAccountBook" :loading="creating">
-        {{ editId ? '保存' : (form.type === 0 ? '创建个人账本' : '创建集体账本') }}
+        {{ editId ? '保存' : (form.type === 0 ? '创建个人账本' : '创建一起账本') }}
       </button>
     </view>
   </view>
@@ -240,14 +240,14 @@ export default {
   data() {
     return {
       form: {
-        type: 0, // 0-个人账本，1-集体账本
+        type: 0, // 0-个人账本，1-一起账本
         name: '',
         description: '',
         category: 0, // 账本用途类型
         isDefault: false, // 个人账本专用
-        startDate: '', // 集体账本专用
-        endDate: '', // 集体账本专用
-        budget: '', // 集体账本专用
+        startDate: '', // 一起账本专用
+        endDate: '', // 一起账本专用
+        budget: '', // 一起账本专用
         defaultCurrency: 0, // 默认人民币
         enabledCurrencyIds: [0], // 默认只勾选人民币
         linkedCategoryIds: [] // 账本关联的交易类别ID，空表示记账时展示全部类别
@@ -257,7 +257,7 @@ export default {
       linkedCategoryGroups: [], // 按类型+父子分组：[{ typeLabel, parents: [{ id, name, icon, children }] }]
       expandedParentId: null, // 当前展开子分类的父类 id，仅展示该父类的子类
       linkedCategoryExpandedByType: {}, // 按类型（支出/收入）分别控制是否展开，如 { '支出': true, '收入': false }
-      editId: null, // 编辑时传入的集体账本 id，有值时为编辑模式
+      editId: null, // 编辑时传入的一起账本 id，有值时为编辑模式
       categoryOptions: [
         { value: 0, name: '日常消费', icon: '🏠' },
         { value: 1, name: '旅行', icon: '✈️' },
@@ -327,7 +327,7 @@ export default {
     this.loadLinkedCategoryOptions();
     if (options && options.id) {
       this.editId = parseInt(options.id, 10);
-      const editType = options.type != null ? parseInt(options.type, 10) : 1; // 0-个人，1-集体，默认集体
+      const editType = options.type != null ? parseInt(options.type, 10) : 1; // 0-个人，1-一起账本，默认一起账本
       if (this.editId) {
         this.loadAccountBookForEdit(editType);
       }
@@ -538,7 +538,7 @@ export default {
         return;
       }
       
-      // 验证日期（仅集体账本）
+      // 验证日期（仅一起账本）
       if (this.form.type === 1) {
         if (this.form.startDate && this.form.endDate && this.form.endDate < this.form.startDate) {
           uni.showToast({
@@ -566,7 +566,7 @@ export default {
               linkedCategoryIds: (this.form.linkedCategoryIds && this.form.linkedCategoryIds.length > 0) ? this.form.linkedCategoryIds : null
             });
           } else {
-            // 编辑集体账本
+            // 编辑一起账本
             await api.sharedAccountBooks.update(this.editId, {
               name: this.form.name.trim(),
               description: this.form.description.trim() || null,

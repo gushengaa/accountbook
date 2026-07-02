@@ -1,1 +1,1 @@
-"use strict";const e=require("../../common/vendor.js"),t={onLoad(){e.index.setNavigationBarTitle({title:"用户协议"})}};const n=e._export_sfc(t,[["render",function(e,t,n,o,r,c){return{}}],["__scopeId","data-v-700c688c"]]);wx.createPage(n);
+"use strict";const e=require("../../common/vendor.js"),t={onLoad(){e.index.setNavigationBarTitle({title:"用户协议"})}};const n=e._export_sfc(t,[["render",function(e,t,n,o,r,a){return{}}],["__scopeId","data-v-2213a780"]]);wx.createPage(n);

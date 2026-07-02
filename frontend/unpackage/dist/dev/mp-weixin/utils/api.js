@@ -1,6 +1,8 @@
 "use strict";
 const common_vendor = require("../common/vendor.js");
 const BASE_URL = "https://www.planor.cn/accountbook/api";
+const MAX_RETRIES = 1;
+const RETRY_DELAY_MS = 500;
 function getToken() {
   return common_vendor.index.getStorageSync("token") || "";
 }
@@ -11,19 +13,31 @@ function clearToken() {
   common_vendor.index.removeStorageSync("token");
   common_vendor.index.removeStorageSync("userInfo");
 }
-function request(options) {
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function shouldRetry(method, statusCode) {
+  const m = (method || "GET").toUpperCase();
+  if (m !== "GET" && m !== "HEAD")
+    return false;
+  if (!statusCode)
+    return true;
+  return statusCode >= 500;
+}
+function request(options, retryCount = 0) {
   return new Promise((resolve, reject) => {
     const token = getToken();
+    const method = options.method || "GET";
     common_vendor.index.request({
       url: BASE_URL + options.url,
-      method: options.method || "GET",
+      method,
       data: options.data || {},
       header: {
         "Content-Type": "application/json",
         "Authorization": token ? `Bearer ${token}` : "",
         ...options.header
       },
-      success: (res) => {
+      success: async (res) => {
         var _a;
         if (res.statusCode === 200 || res.statusCode === 201 || res.statusCode === 204) {
           resolve(res.data || null);
@@ -31,21 +45,32 @@ function request(options) {
           clearToken();
           common_vendor.index.setStorageSync("isGuestMode", true);
           reject(new Error("登录已过期，请重新登录"));
+        } else if (shouldRetry(method, res.statusCode) && retryCount < MAX_RETRIES) {
+          await sleep(RETRY_DELAY_MS * (retryCount + 1));
+          try {
+            resolve(await request(options, retryCount + 1));
+          } catch (err) {
+            reject(err);
+          }
         } else {
           const errorMsg = ((_a = res.data) == null ? void 0 : _a.message) || "请求失败";
-          common_vendor.index.showToast({
-            title: errorMsg,
-            icon: "none"
-          });
+          common_vendor.index.showToast({ title: errorMsg, icon: "none" });
           reject(new Error(errorMsg));
         }
       },
-      fail: (err) => {
-        common_vendor.index.showToast({
-          title: "网络请求失败",
-          icon: "none"
-        });
-        reject(err);
+      fail: async (err) => {
+        if (shouldRetry(method) && retryCount < MAX_RETRIES) {
+          await sleep(RETRY_DELAY_MS * (retryCount + 1));
+          try {
+            resolve(await request(options, retryCount + 1));
+          } catch (retryErr) {
+            common_vendor.index.showToast({ title: "网络请求失败", icon: "none" });
+            reject(retryErr);
+          }
+        } else {
+          common_vendor.index.showToast({ title: "网络请求失败", icon: "none" });
+          reject(err);
+        }
       }
     });
   });
@@ -124,9 +149,9 @@ const api = {
       });
     }
   },
-  // 集体账本
+  // 一起账本
   sharedAccountBooks: {
-    // 创建集体账本
+    // 创建一起账本
     create(data) {
       return request({
         url: "/sharedaccountbooks",
@@ -134,21 +159,21 @@ const api = {
         data
       });
     },
-    // 获取所有集体账本
+    // 获取所有一起账本
     getList() {
       return request({
         url: "/sharedaccountbooks",
         method: "GET"
       });
     },
-    // 获取集体账本详情
+    // 获取一起账本详情
     getById(id) {
       return request({
         url: `/sharedaccountbooks/${id}`,
         method: "GET"
       });
     },
-    // 更新集体账本
+    // 更新一起账本
     update(id, data) {
       return request({
         url: `/sharedaccountbooks/${id}`,
@@ -156,14 +181,14 @@ const api = {
         data
       });
     },
-    // 删除集体账本
+    // 删除一起账本
     delete(id) {
       return request({
         url: `/sharedaccountbooks/${id}`,
         method: "DELETE"
       });
     },
-    // 加入集体账本
+    // 加入一起账本
     join(data) {
       return request({
         url: "/sharedaccountbooks/join",
@@ -171,7 +196,7 @@ const api = {
         data
       });
     },
-    // 退出集体账本
+    // 退出一起账本
     leave(id) {
       return request({
         url: `/sharedaccountbooks/${id}/leave`,
@@ -209,7 +234,7 @@ const api = {
         method: "GET"
       });
     },
-    // 获取集体账本的所有交易记录（集体账本和个人账本使用相同的接口）
+    // 获取一起账本的所有交易记录（一起账本和个人账本使用相同的接口）
     getBySharedAccountBook(sharedAccountBookId) {
       return request({
         url: `/transactions/account-book/${sharedAccountBookId}`,
@@ -504,12 +529,12 @@ const api = {
                 reject(new Error(errorMsg));
               }
             } catch (e) {
-              common_vendor.index.__f__("error", "at utils/api.js:524", "上传响应解析失败", res.statusCode, res.data);
+              common_vendor.index.__f__("error", "at utils/api.js:546", "上传响应解析失败", res.statusCode, res.data);
               reject(new Error(`上传失败(HTTP ${res.statusCode})`));
             }
           },
           fail: (err) => {
-            common_vendor.index.__f__("error", "at utils/api.js:529", "上传失败", err);
+            common_vendor.index.__f__("error", "at utils/api.js:551", "上传失败", err);
             reject(err);
           }
         });
@@ -532,6 +557,19 @@ const api = {
         url: "/aitransaction/recognize-voice",
         method: "POST",
         data
+      });
+    },
+    submitVoiceRecognitionAsync(data) {
+      return request({
+        url: "/aitransaction/recognize-voice/async",
+        method: "POST",
+        data
+      });
+    },
+    getRecognitionTask(taskId) {
+      return request({
+        url: `/aitransaction/tasks/${taskId}`,
+        method: "GET"
       });
     }
   },

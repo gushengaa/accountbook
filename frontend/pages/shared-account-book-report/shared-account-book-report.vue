@@ -7,7 +7,7 @@
     <scroll-view v-else class="report-content" scroll-y>
       <!-- 报告头部 -->
       <view class="report-header">
-        <text class="report-title">{{ report?.accountBook?.name || '集体账本报告' }}</text>
+        <text class="report-title">{{ report?.accountBook?.name || '一起账本报告' }}</text>
         <text class="report-subtitle">生成时间：{{ formatDate(report?.generatedAt) }}</text>
         <!-- 筛选选项 -->
         <view class="filter-tabs">
@@ -436,13 +436,13 @@ export default {
   onShareAppMessage() {
     if (this.report?.accountBook) {
       return {
-        title: `${this.report.accountBook.name} - 集体账本报告`,
+        title: `${this.report.accountBook.name} - 一起账本报告`,
         path: `/pages/shared-account-book-report/shared-account-book-report?id=${this.accountBookId}`,
         imageUrl: '/static/share-report.jpg' // 可以设置分享图片URL
       };
     }
     return {
-      title: '集体账本报告',
+      title: '一起账本报告',
       path: '/pages/index/index'
     };
   },
@@ -1254,11 +1254,11 @@ export default {
       border: 2rpx solid #E5FFE5;
       
       &::before {
-        background: linear-gradient(90deg, #5CB85C 0%, #6ED4CD 100%);
+        background: linear-gradient(90deg, #5CB85C 0%, #7BC87E 100%);
       }
       
       .summary-icon {
-        background: linear-gradient(135deg, #5CB85C 0%, #6ED4CD 100%);
+        background: linear-gradient(135deg, #5CB85C 0%, #7BC87E 100%);
       }
       
       .summary-value {
@@ -1267,8 +1267,8 @@ export default {
     }
     
     &.balance {
-      background: linear-gradient(135deg, #F0F9FF 0%, #FFFFFF 100%);
-      border: 2rpx solid #E5F5FF;
+      background: linear-gradient(135deg, #FFF8EB 0%, #FFFFFF 100%);
+      border: 2rpx solid #F5E8D0;
       
       &::before {
         background: linear-gradient(90deg, #F5A623 0%, #F7B84D 100%);

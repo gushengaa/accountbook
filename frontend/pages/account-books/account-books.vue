@@ -17,38 +17,38 @@
       <view class="account-type-tabs">
         <view 
           class="type-tab" 
-          :class="{ active: accountBookTab === 'personal', 'tab-personal': accountBookTab === 'personal' }"
+          :class="{ active: accountBookTab === 'personal' }"
           @click="switchAccountBookTab('personal')"
         >
           <text class="tab-text">个人账本</text>
         </view>
         <view 
           class="type-tab" 
-          :class="{ active: accountBookTab === 'shared', 'tab-shared': accountBookTab === 'shared' }"
+          :class="{ active: accountBookTab === 'shared' }"
           @click="switchAccountBookTab('shared')"
         >
-          <text class="tab-text">集体账本</text>
+          <text class="tab-text">一起账本</text>
         </view>
       </view>
       
       <view class="status-tags">
         <view 
           class="status-tag" 
-          :class="{ active: statusTab === 'all', 'tag-all': statusTab === 'all' }"
+          :class="{ active: statusTab === 'all' }"
           @click="statusTab = 'all'"
         >
           <text class="status-tag-text">全部</text>
         </view>
         <view 
           class="status-tag" 
-          :class="{ active: statusTab === 'active', 'tag-active': statusTab === 'active' }"
+          :class="{ active: statusTab === 'active' }"
           @click="statusTab = 'active'"
         >
           <text class="status-tag-text">进行中</text>
         </view>
         <view 
           class="status-tag" 
-          :class="{ active: statusTab === 'ended', 'tag-ended': statusTab === 'ended' }"
+          :class="{ active: statusTab === 'ended' }"
           @click="statusTab = 'ended'"
         >
           <text class="status-tag-text">已结束</text>
@@ -67,7 +67,6 @@
           :style="getBookCardTintStyle(book.category)"
           @click="viewAccountBook(book, 0)"
         >
-          <view class="book-accent"></view>
           <view class="book-card-inner">
             <view class="book-header">
               <view class="book-title-block">
@@ -98,7 +97,7 @@
       </view>
     </view>
     
-    <!-- 集体账本列表 -->
+    <!-- 一起账本列表 -->
     <view v-if="accountBookTab === 'shared'" class="account-books-section">
       <view v-if="displayedSharedBooks.length > 0" class="account-books-list">
         <view 
@@ -109,7 +108,6 @@
           :style="getBookCardTintStyle(book.category)"
           @click="viewSharedAccountBook(book)"
         >
-          <view class="book-accent"></view>
           <view class="book-card-inner">
             <view class="book-header">
               <view class="book-title-block">
@@ -119,7 +117,7 @@
                 <text class="book-name">{{ book.name }}</text>
               </view>
               <view class="book-badges">
-                <text class="badge shared-type">集体</text>
+                <text class="badge shared-type">一起记</text>
                 <text class="badge category" :style="getBookCategoryBadgeStyle(book.category)">{{ book.categoryName || '日常消费' }}</text>
                 <text v-if="book.status === 1" class="badge ended">已结束</text>
                 <text v-else class="badge active-status">进行中</text>
@@ -136,6 +134,11 @@
               <text class="share-code">分享码：{{ book.shareCode }}</text>
               <view class="book-footer-right">
                 <text class="book-date">创建于 {{ formatDate(book.createdAt) }}</text>
+                <text
+                  v-if="book.status !== 1 && canEndSharedBook(book)"
+                  class="end-btn"
+                  @click.stop="showEndDialog(book)"
+                >结束账本</text>
                 <text class="delete-btn" @click.stop="showDeleteDialog(book, 1)">删除</text>
               </view>
             </view>
@@ -154,11 +157,29 @@
         </view>
       </view>
       <view v-else class="empty-state">
-        <text class="empty-text">{{ statusTab === 'all' ? '还没有集体账本' : (statusTab === 'active' ? '还没有进行中的集体账本' : '还没有已结束的集体账本') }}</text>
-        <text class="empty-hint">{{ statusTab === 'all' || statusTab === 'active' ? '点击上方「创建账本」或「加入账本」' : '已结束的集体账本将显示在此' }}</text>
+        <text class="empty-text">{{ statusTab === 'all' ? '还没有一起账本' : (statusTab === 'active' ? '还没有进行中的一起账本' : '还没有已结束的一起账本') }}</text>
+        <text class="empty-hint">{{ statusTab === 'all' || statusTab === 'active' ? '点击上方「创建账本」或「加入账本」' : '已结束的一起账本将显示在此' }}</text>
       </view>
     </view>
     
+    <!-- 结束账本确认弹窗 -->
+    <view v-if="showEndConfirmDialog" class="dialog-mask" @click="showEndConfirmDialog = false">
+      <view class="dialog-content" @click.stop>
+        <view class="dialog-header">
+          <text class="dialog-title">结束账本</text>
+          <text class="dialog-close" @click="showEndConfirmDialog = false">×</text>
+        </view>
+        <view class="dialog-body">
+          <text class="delete-confirm-text">确定要结束"{{ endTargetBook?.name }}"吗？</text>
+          <text class="delete-warning-text">结束后将无法继续记账，成员仍可查看历史记录。</text>
+        </view>
+        <view class="dialog-footer">
+          <button class="dialog-btn cancel" @click="showEndConfirmDialog = false" :plain="true">取消</button>
+          <button class="dialog-btn confirm" @click="confirmEndBook" :loading="ending" :plain="true">结束</button>
+        </view>
+      </view>
+    </view>
+
     <!-- 删除账本确认弹窗 -->
     <view v-if="showDeleteConfirmDialog" class="dialog-mask" @click="showDeleteConfirmDialog = false">
       <view class="dialog-content" @click.stop>
@@ -177,7 +198,7 @@
       </view>
     </view>
     
-    <!-- 加入集体账本弹窗 -->
+    <!-- 加入一起账本弹窗 -->
     <view v-if="showJoinDialog" class="dialog-mask" @click="showJoinDialog = false">
       <view class="dialog-content" @click.stop>
         <view class="dialog-header">
@@ -231,17 +252,20 @@ export default {
       personalAccountBooks: [],
       sharedAccountBooks: [],
       showJoinDialog: false,
+      showEndConfirmDialog: false,
       showDeleteConfirmDialog: false,
       shareCode: '',
       joining: false,
+      ending: false,
       deleting: false,
+      endTargetBook: null,
       deleteTargetBook: null,
-      deleteBookType: 0, // 0-个人账本，1-集体账本
+      deleteBookType: 0, // 0-个人账本，1-一起账本
       currentShareBook: null // 当前要分享的账本
     };
   },
   computed: {
-    ...mapState(['currentAccountBook']),
+    ...mapState(['currentAccountBook', 'userInfo']),
     // 按状态筛选后的个人账本：全部/进行中/已结束
     displayedPersonalBooks() {
       const list = this.personalAccountBooks || [];
@@ -249,7 +273,7 @@ export default {
       if (this.statusTab === 'active') return list.filter(b => b.status !== 1);
       return list.filter(b => b.status === 1);
     },
-    // 按状态筛选后的集体账本
+    // 按状态筛选后的一起账本
     displayedSharedBooks() {
       const list = this.sharedAccountBooks || [];
       if (this.statusTab === 'all') return list;
@@ -272,7 +296,7 @@ export default {
   onShareAppMessage() {
     if (this.currentShareBook?.shareCode) {
       return {
-        title: `邀请你加入集体账本：${this.currentShareBook.name}`,
+        title: `邀请你加入一起账本：${this.currentShareBook.name}`,
         path: `/pages/join-account-book/join-account-book?shareCode=${this.currentShareBook.shareCode}`,
         imageUrl: '/static/invite.jpg'
       };
@@ -283,7 +307,7 @@ export default {
     };
   },
   methods: {
-    ...mapActions(['setCurrentAccountBook', 'updateAccountBooks']),
+    ...mapActions(['setCurrentAccountBook', 'updateAccountBooks', 'setCurrentSharedAccountBook']),
     formatDate,
     getBookCategoryEmoji,
     getBookCategoryBadgeStyle,
@@ -307,12 +331,12 @@ export default {
         const personalBooks = await api.accountBooks.getList();
         this.personalAccountBooks = personalBooks;
         
-        // 加载集体账本
+        // 加载一起账本
         let sharedBooks = [];
         try {
           sharedBooks = await api.sharedAccountBooks.getList();
         } catch (error) {
-          console.error('加载集体账本失败', error);
+          console.error('加载一起账本失败', error);
         }
         this.sharedAccountBooks = sharedBooks;
         
@@ -344,14 +368,14 @@ export default {
     },
     
     viewAccountBook(book, type) {
-      // 查看账本详情（支持个人账本和集体账本）
+      // 查看账本详情（支持个人账本和一起账本）
       uni.navigateTo({
         url: `/pages/shared-account-book-detail/shared-account-book-detail?id=${book.id}&type=${type}`
       });
     },
     
     viewSharedAccountBook(book) {
-      // 查看集体账本详情（兼容旧代码）
+      // 查看一起账本详情（兼容旧代码）
       this.viewAccountBook(book, 1);
     },
     
@@ -430,6 +454,85 @@ export default {
       }
     },
     
+    getSharedBookCreatorId(book) {
+      if (!book) return null;
+      return book.creatorId ?? book.userId ?? null;
+    },
+
+    isSharedBookCreator(book) {
+      const creatorId = this.getSharedBookCreatorId(book);
+      const userId = this.userInfo?.id;
+      if (creatorId == null || userId == null) return false;
+      return String(creatorId) === String(userId);
+    },
+
+    canEndSharedBook(book) {
+      return !!(book && book.status !== 1 && this.isSharedBookCreator(book));
+    },
+
+    showEndDialog(book) {
+      if (!this.canEndSharedBook(book)) {
+        uni.showToast({
+          title: '仅创建者可结束账本',
+          icon: 'none'
+        });
+        return;
+      }
+      this.endTargetBook = book;
+      this.showEndConfirmDialog = true;
+    },
+
+    async confirmEndBook() {
+      if (!this.endTargetBook) return;
+      if (!this.canEndSharedBook(this.endTargetBook)) {
+        uni.showToast({
+          title: '仅创建者可结束账本',
+          icon: 'none'
+        });
+        this.showEndConfirmDialog = false;
+        this.endTargetBook = null;
+        return;
+      }
+
+      this.ending = true;
+
+      try {
+        const book = this.endTargetBook;
+        await api.sharedAccountBooks.update(book.id, {
+          name: book.name,
+          description: book.description || null,
+          budget: book.budget ?? null,
+          startDate: book.startDate || null,
+          endDate: book.endDate || null,
+          status: 1
+        });
+
+        if (this.currentAccountBook?.id === book.id && this.currentAccountBook?.type === 1) {
+          await this.setCurrentAccountBook(null);
+        }
+        if (this.$store.state.currentSharedAccountBook?.id === book.id) {
+          this.setCurrentSharedAccountBook(null);
+        }
+
+        uni.showToast({
+          title: '账本已结束',
+          icon: 'success'
+        });
+
+        this.showEndConfirmDialog = false;
+        this.endTargetBook = null;
+        await this.loadAccountBooks();
+      } catch (error) {
+        console.error('结束账本失败', error);
+        uni.showToast({
+          title: error.message || '结束失败',
+          icon: 'none'
+        });
+      } finally {
+        this.ending = false;
+      }
+    },
+
     showDeleteDialog(book, type) {
       this.deleteTargetBook = book;
       this.deleteBookType = type;
@@ -446,7 +549,7 @@ export default {
           // 删除个人账本
           await api.accountBooks.delete(this.deleteTargetBook.id);
         } else {
-          // 删除集体账本
+          // 删除一起账本
           await api.sharedAccountBooks.delete(this.deleteTargetBook.id);
         }
         
@@ -597,17 +700,8 @@ export default {
       font-weight: 500;
     }
     
-    &.active.tab-personal {
+    &.active {
       background: linear-gradient(135deg, #F5A623 0%, #F7B84D 100%);
-      
-      .tab-text {
-        color: #FFFFFF;
-        font-weight: bold;
-      }
-    }
-
-    &.active.tab-shared {
-      background: linear-gradient(135deg, #E8940C 0%, #D4820A 100%);
       
       .tab-text {
         color: #FFFFFF;
@@ -634,26 +728,8 @@ export default {
       font-weight: 500;
     }
     
-    &.active.tag-all {
+    &.active {
       background: linear-gradient(135deg, #F5A623 0%, #F7B84D 100%);
-      
-      .status-tag-text {
-        color: #FFFFFF;
-        font-weight: bold;
-      }
-    }
-
-    &.active.tag-active {
-      background: linear-gradient(135deg, #5CB85C 0%, #7BC87E 100%);
-      
-      .status-tag-text {
-        color: #FFFFFF;
-        font-weight: bold;
-      }
-    }
-
-    &.active.tag-ended {
-      background: linear-gradient(135deg, #8E99A8 0%, #A8B0BC 100%);
       
       .status-tag-text {
         color: #FFFFFF;
@@ -683,16 +759,18 @@ export default {
       box-shadow: 0 6rpx 20rpx var(--book-tint, rgba(245, 166, 35, 0.12));
     }
 
-    .book-accent {
-      width: 8rpx;
-      flex-shrink: 0;
-      background: var(--book-accent, #F5A623);
+    &.shared {
+      border-color: var(--book-tint-border, rgba(245, 166, 35, 0.22));
+
+      &.active {
+        border-color: var(--book-accent, #E8940C);
+      }
     }
 
     .book-card-inner {
       flex: 1;
       min-width: 0;
-      padding: 28rpx 28rpx 28rpx 24rpx;
+      padding: 28rpx;
       background: linear-gradient(135deg, var(--book-tint, rgba(245, 166, 35, 0.06)) 0%, #FFFBF5 42%);
     }
     
@@ -838,6 +916,14 @@ export default {
         gap: 16rpx;
       }
       
+      .end-btn {
+        font-size: 24rpx;
+        color: #E8940C;
+        padding: 8rpx 16rpx;
+        border-radius: 8rpx;
+        background: rgba(245, 166, 35, 0.12);
+      }
+
       .delete-btn {
         font-size: 24rpx;
         color: #E85D4B;

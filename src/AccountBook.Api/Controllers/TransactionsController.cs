@@ -103,6 +103,28 @@ public class TransactionsController : ControllerBase
     }
 
     /// <summary>
+    /// 个人预算概览（个人账本支出 + 我创建的一起记支出）
+    /// </summary>
+    [HttpGet("statistics/personal-budget")]
+    public async Task<ActionResult<PersonalBudgetOverviewDto>> GetPersonalBudgetOverview(
+        [FromQuery] int year,
+        [FromQuery] int month,
+        [FromQuery] int? personalAccountBookId = null)
+    {
+        try
+        {
+            var userId = GetUserId();
+            var overview = await _transactionService.GetPersonalBudgetOverviewAsync(
+                userId, year, month, personalAccountBookId);
+            return Ok(overview);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// 获取用户全账本某一级分类在指定年月的交易明细
     /// </summary>
     [HttpGet("statistics/category-transactions")]
