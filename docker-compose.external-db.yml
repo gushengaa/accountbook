@@ -14,7 +14,6 @@ services:
       UseHttpsRedirection: "false"
       Database__RunMigrationsOnStartup: "false"
       ConnectionStrings__DefaultConnection: ${DB_CONNECTION}
-      ConnectionStrings__ReadOnlyConnection: ${DB_READ_CONNECTION:-}
       ConnectionStrings__Redis: ${REDIS_CONNECTION:-}
       Jwt__Key: ${JWT_KEY}
       Jwt__Issuer: AccountBook

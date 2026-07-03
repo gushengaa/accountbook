@@ -12,7 +12,6 @@ services:
         UseHttpsRedirection: "false"
         Database__RunMigrationsOnStartup: "false"
         ConnectionStrings__DefaultConnection: ${DB_CONNECTION:-Host=postgres;Port=5432;Database=AccountBook;Username=postgres;Password=postgres;Timezone=UTC}
-        ConnectionStrings__ReadOnlyConnection: ${DB_READ_CONNECTION:-}
         ConnectionStrings__Redis: ${REDIS_CONNECTION:-redis:6379}
         Jwt__Key: ${JWT_KEY:-change-me-to-a-secret-key-at-least-32-chars}
         Jwt__Issuer: AccountBook

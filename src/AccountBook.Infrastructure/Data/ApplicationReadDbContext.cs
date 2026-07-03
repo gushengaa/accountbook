@@ -15,8 +15,10 @@ public class ApplicationReadDbContext : ApplicationDbContext
 
     private static DbContextOptions<ApplicationDbContext> CreateOptions(IConfiguration configuration)
     {
-        var connection = configuration.GetConnectionString("ReadOnlyConnection")
-            ?? configuration.GetConnectionString("DefaultConnection")
+        var readOnly = configuration.GetConnectionString("ReadOnlyConnection");
+        var connection = !string.IsNullOrWhiteSpace(readOnly)
+            ? readOnly
+            : configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("数据库连接字符串未配置");
 
         return new DbContextOptionsBuilder<ApplicationDbContext>()
