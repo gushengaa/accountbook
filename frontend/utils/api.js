@@ -486,6 +486,16 @@ export const api = {
     }
   },
 
+  // 消费渠道
+  spendingChannelTypes: {
+    getList() {
+      return request({
+        url: '/spending-channel-types',
+        method: 'GET'
+      });
+    }
+  },
+
   // 账本用途与交易分类关联
   bookPurposeCategories: {
     getPurposes() {

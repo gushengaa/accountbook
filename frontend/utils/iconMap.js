@@ -10,6 +10,7 @@ export const APP_ICONS = {
   'home-filled': 'home',
   wallet: 'wallet',
   'wallet-filled': 'wallet',
+  shop: 'store-2',
   bars: 'bar-chart',
   person: 'user',
   'person-filled': 'user',

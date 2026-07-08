@@ -24,6 +24,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<AccountBookCategoryLink> AccountBookCategoryLinks { get; set; }
     public DbSet<BookPurposeCategoryLink> BookPurposeCategoryLinks { get; set; }
     public DbSet<PaymentMethodType> PaymentMethodTypes { get; set; }
+    public DbSet<SpendingChannelType> SpendingChannelTypes { get; set; }
     public DbSet<CurrencyRate> CurrencyRates { get; set; }
     public DbSet<Feedback> Feedbacks { get; set; }
 
@@ -82,6 +83,15 @@ public class ApplicationDbContext : DbContext
         });
 
         modelBuilder.Entity<PaymentMethodType>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Value).IsUnique();
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Icon).HasMaxLength(100);
+            entity.Property(e => e.Color).HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<SpendingChannelType>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.Value).IsUnique();

@@ -265,6 +265,16 @@ const api = {
         method: "GET"
       });
     },
+    getPersonalBudgetOverview(year, month, personalAccountBookId) {
+      let url = `/transactions/statistics/personal-budget?year=${year}&month=${month}`;
+      if (personalAccountBookId != null && personalAccountBookId !== "") {
+        url += `&personalAccountBookId=${personalAccountBookId}`;
+      }
+      return request({
+        url,
+        method: "GET"
+      });
+    },
     getCategoryStatisticsTransactions(rootCategoryId, year, month, type) {
       return request({
         url: `/transactions/statistics/category-transactions?rootCategoryId=${rootCategoryId}&year=${year}&month=${month}&type=${type}`,
@@ -460,6 +470,15 @@ const api = {
       });
     }
   },
+  // 消费渠道
+  spendingChannelTypes: {
+    getList() {
+      return request({
+        url: "/spending-channel-types",
+        method: "GET"
+      });
+    }
+  },
   // 账本用途与交易分类关联
   bookPurposeCategories: {
     getPurposes() {
@@ -529,12 +548,12 @@ const api = {
                 reject(new Error(errorMsg));
               }
             } catch (e) {
-              common_vendor.index.__f__("error", "at utils/api.js:546", "上传响应解析失败", res.statusCode, res.data);
+              common_vendor.index.__f__("error", "at utils/api.js:566", "上传响应解析失败", res.statusCode, res.data);
               reject(new Error(`上传失败(HTTP ${res.statusCode})`));
             }
           },
           fail: (err) => {
-            common_vendor.index.__f__("error", "at utils/api.js:551", "上传失败", err);
+            common_vendor.index.__f__("error", "at utils/api.js:571", "上传失败", err);
             reject(err);
           }
         });

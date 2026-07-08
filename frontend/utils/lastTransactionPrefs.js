@@ -29,6 +29,14 @@ export function getLastCategoryId(transactionType, accountBookId) {
   return Number.isNaN(id) ? null : id;
 }
 
+export function getLastSpendingChannel(transactionType, accountBookId) {
+  const prefs = readStore()[getScopeKey(transactionType, accountBookId)];
+  if (!prefs || prefs.spendingChannel == null) return null;
+  const value = Number(prefs.spendingChannel);
+  return Number.isNaN(value) ? null : value;
+}
+
+/** @deprecated 记一笔页已改用消费渠道 */
 export function getLastPaymentMethod(transactionType, accountBookId) {
   const prefs = readStore()[getScopeKey(transactionType, accountBookId)];
   if (!prefs || prefs.paymentMethod == null) return null;
@@ -36,7 +44,11 @@ export function getLastPaymentMethod(transactionType, accountBookId) {
   return Number.isNaN(value) ? null : value;
 }
 
-export function recordLastTransactionPrefs(transactionType, accountBookId, { categoryId, paymentMethod } = {}) {
+export function recordLastTransactionPrefs(
+  transactionType,
+  accountBookId,
+  { categoryId, spendingChannel, paymentMethod } = {}
+) {
   const scopeKey = getScopeKey(transactionType, accountBookId);
   const store = readStore();
   const next = { ...(store[scopeKey] || {}) };
@@ -44,6 +56,10 @@ export function recordLastTransactionPrefs(transactionType, accountBookId, { cat
   if (categoryId != null) {
     const id = Number(categoryId);
     if (!Number.isNaN(id)) next.categoryId = id;
+  }
+  if (spendingChannel != null) {
+    const value = Number(spendingChannel);
+    if (!Number.isNaN(value)) next.spendingChannel = value;
   }
   if (paymentMethod != null) {
     const value = Number(paymentMethod);

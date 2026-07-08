@@ -27,7 +27,14 @@ function getLastCategoryId(transactionType, accountBookId) {
   const id = Number(prefs.categoryId);
   return Number.isNaN(id) ? null : id;
 }
-function recordLastTransactionPrefs(transactionType, accountBookId, { categoryId, paymentMethod } = {}) {
+function getLastSpendingChannel(transactionType, accountBookId) {
+  const prefs = readStore()[getScopeKey(transactionType, accountBookId)];
+  if (!prefs || prefs.spendingChannel == null)
+    return null;
+  const value = Number(prefs.spendingChannel);
+  return Number.isNaN(value) ? null : value;
+}
+function recordLastTransactionPrefs(transactionType, accountBookId, { categoryId, spendingChannel, paymentMethod } = {}) {
   const scopeKey = getScopeKey(transactionType, accountBookId);
   const store = readStore();
   const next = { ...store[scopeKey] || {} };
@@ -35,6 +42,11 @@ function recordLastTransactionPrefs(transactionType, accountBookId, { categoryId
     const id = Number(categoryId);
     if (!Number.isNaN(id))
       next.categoryId = id;
+  }
+  if (spendingChannel != null) {
+    const value = Number(spendingChannel);
+    if (!Number.isNaN(value))
+      next.spendingChannel = value;
   }
   if (paymentMethod != null) {
     const value = Number(paymentMethod);
@@ -45,5 +57,6 @@ function recordLastTransactionPrefs(transactionType, accountBookId, { categoryId
   writeStore(store);
 }
 exports.getLastCategoryId = getLastCategoryId;
+exports.getLastSpendingChannel = getLastSpendingChannel;
 exports.recordLastTransactionPrefs = recordLastTransactionPrefs;
 //# sourceMappingURL=../../.sourcemap/mp-weixin/utils/lastTransactionPrefs.js.map

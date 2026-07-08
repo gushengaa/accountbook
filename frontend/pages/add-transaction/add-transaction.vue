@@ -76,10 +76,10 @@
     <!-- 支付+金额 / 备注+单据 -->
     <view class="input-panel">
       <view class="input-bar input-bar-top">
-        <view class="input-bar-payment">
-          <app-icon name="wallet" :size="18" color="#999999" />
-          <text v-if="currentPaymentMethod" class="input-bar-meta-text">{{ currentPaymentMethod.name }}</text>
-          <text class="input-bar-meta-btn" @click="openPaymentDialog">修改</text>
+        <view v-if="transactionType === 0" class="input-bar-payment">
+          <app-icon name="shop" :size="18" color="#999999" />
+          <text v-if="currentSpendingChannel" class="input-bar-meta-text">{{ currentSpendingChannel.name }}</text>
+          <text class="input-bar-meta-btn" @click="openChannelDialog">修改</text>
         </view>
         <view class="input-bar-amount">
           <text class="amount-expression">{{ amountExpression || '0' }}</text>
@@ -467,31 +467,31 @@
       </view>
     </view>
 
-    <!-- 支付方式选择抽屉 -->
-    <view v-if="showPaymentDialog" class="category-drawer-mask" @click="closePaymentDialog">
+    <!-- 消费渠道选择抽屉 -->
+    <view v-if="showChannelDialog" class="category-drawer-mask" @click="closeChannelDialog">
       <view class="category-drawer-panel" @click.stop>
         <scroll-view scroll-y class="category-drawer-scroll" :show-scrollbar="false">
           <view class="category-group">
             <view class="category-group-header">
-              <text class="group-header-name">选择支付方式</text>
+              <text class="group-header-name">选择消费渠道</text>
             </view>
             <view class="category-group-children">
               <view
-                v-for="method in paymentMethods"
-                :key="method.value"
+                v-for="channel in spendingChannels"
+                :key="channel.value"
                 class="grid-category-item"
-                :class="{ selected: tempPaymentMethod === method.value }"
-                @tap.stop="tempPaymentMethod = method.value"
+                :class="{ selected: tempSpendingChannel === channel.value }"
+                @tap.stop="tempSpendingChannel = channel.value"
               >
                 <view class="grid-icon-circle">
                   <app-icon
-                    :icon="method.icon"
-                    :category-name="method.name"
+                    :icon="channel.icon"
+                    :category-name="channel.name"
                     :size="22"
-                    :color="tempPaymentMethod === method.value ? '#333333' : method.color"
+                    :color="tempSpendingChannel === channel.value ? '#333333' : channel.color"
                   />
                 </view>
-                <text class="grid-category-name">{{ method.name }}</text>
+                <text class="grid-category-name">{{ channel.name }}</text>
               </view>
             </view>
           </view>
@@ -500,7 +500,7 @@
         <view class="category-drawer-footer">
           <button
             class="category-drawer-confirm-btn active"
-            @click="confirmPaymentMethod"
+            @click="confirmSpendingChannel"
           >确认</button>
         </view>
       </view>
@@ -542,6 +542,7 @@ import {
 } from '@/utils/categoryFrequent';
 import {
   getLastCategoryId,
+  getLastSpendingChannel,
   recordLastTransactionPrefs
 } from '@/utils/lastTransactionPrefs';
 import { recordLastUsedAccountBook, resolveAccountBookForAdd } from '@/utils/lastUsedAccountBook';
@@ -698,8 +699,8 @@ export default {
       if (Number.isNaN(d.getTime())) return '今天';
       return `${d.getMonth() + 1}/${d.getDate()}`;
     },
-    currentPaymentMethod() {
-      return this.paymentMethods.find(m => m.value === this.selectedPaymentMethod) || this.paymentMethods[0] || null;
+    currentSpendingChannel() {
+      return this.spendingChannels.find(c => c.value === this.selectedSpendingChannel) || this.spendingChannels[0] || null;
     },
     showAllocationBar() {
       const book = this.displayAccountBook;
@@ -724,7 +725,7 @@ export default {
       amountExpression: '',
       selectedCategoryId: null,
       selectedParentId: null, // 当前选中的父分类ID
-      selectedPaymentMethod: 0, // 支付方式，默认现金
+      selectedSpendingChannel: 0,
       remark: '',
       transactionDate: new Date().toISOString().split('T')[0], // 显示用的日期
       transactionDateTime: new Date().toISOString(), // 完整的日期时间
@@ -734,9 +735,7 @@ export default {
       uploading: false, // 是否正在上传
       sharedAccountBookId: null, // 一起账本ID（从URL参数获取）
       selectedAccountBook: null, // 从首页选择的账本
-      // 支付方式列表（从 API 加载，以下为兜底）
-      paymentMethods: [
-      ],
+      spendingChannels: [],
       // 币种列表（从API获取）
       currencies: [],
       selectedCurrency: 0, // 默认人民币
@@ -750,8 +749,8 @@ export default {
       // 备注弹窗相关
       showRemarkDialog: false, // 是否显示备注弹窗
       tempRemark: '', // 临时备注内容
-      showPaymentDialog: false,
-      tempPaymentMethod: 0,
+      showChannelDialog: false,
+      tempSpendingChannel: 0,
       isRecording: false, // 是否正在录音
       recordingManager: null, // 录音管理器
       allocationUserIds: [], // 分摊对象用户ID（仅一起账本支出）
@@ -798,7 +797,7 @@ export default {
       this.resolveDefaultAccountBookIfNeeded();
     }
     this.loadCurrencies();
-    this.loadPaymentMethods();
+    this.loadSpendingChannels();
   },
   onShow() {
     // 每次显示页面时，检查是否有新的记账类型
@@ -816,7 +815,7 @@ export default {
       // 每次进入页面刷新分类（管理员新增分类等场景）
       this.loadCategories();
     }
-    this.loadPaymentMethods();
+    this.loadSpendingChannels();
     
     // 检查是否需要切换到AI tab
     if (this.switchToAITab) {
@@ -978,7 +977,7 @@ export default {
       // AI记账相关
       this.aiInputText = '';
       this.aiRecognizedResult = null;
-      // 重新加载分类并恢复上一笔的类别与支付方式
+      // 重新加载分类并恢复上一笔的类别与消费渠道
       this.loadCategories();
     },
     
@@ -1026,20 +1025,20 @@ export default {
       }
     },
 
-    async loadPaymentMethods() {
+    async loadSpendingChannels() {
       try {
-        const list = await api.paymentMethodTypes.getList();
+        const list = await api.spendingChannelTypes.getList();
         if (Array.isArray(list) && list.length > 0) {
-          this.paymentMethods = list.map(item => ({
+          this.spendingChannels = list.map(item => ({
             value: item.value,
             name: item.name,
-            icon: item.icon || '💳',
+            icon: item.icon || '🛒',
             color: item.color || '#BFBFBF'
           }));
           this.applyLastTransactionDefaults();
         }
       } catch (error) {
-        console.warn('加载支付方式失败', error);
+        console.warn('加载消费渠道失败', error);
       }
     },
 
@@ -1063,10 +1062,13 @@ export default {
         this.selectedParentId = null;
       }
 
-      if (this.paymentMethods.length > 0) {
-        this.selectedPaymentMethod = this.paymentMethods[0].value;
+      const lastChannel = getLastSpendingChannel(this.transactionType, accountBookId);
+      if (lastChannel != null && this.spendingChannels.some(c => c.value === lastChannel)) {
+        this.selectedSpendingChannel = lastChannel;
+      } else if (this.spendingChannels.length > 0) {
+        this.selectedSpendingChannel = this.spendingChannels[0].value;
       } else {
-        this.selectedPaymentMethod = 0;
+        this.selectedSpendingChannel = 0;
       }
     },
 
@@ -1101,12 +1103,12 @@ export default {
       this.loadCategories();
     },
 
-    saveLastTransactionPrefs(categoryId, paymentMethod, transactionType = this.transactionType) {
+    saveLastTransactionPrefs(categoryId, spendingChannel, transactionType = this.transactionType) {
       const book = this.displayAccountBook;
       if (!book || book.id == null) return;
       recordLastTransactionPrefs(transactionType, book.id, {
         categoryId,
-        paymentMethod
+        spendingChannel
       });
       recordLastUsedAccountBook(book);
     },
@@ -1433,22 +1435,22 @@ export default {
       );
     },
     
-    selectPaymentMethod(value) {
-      this.selectedPaymentMethod = value;
+    selectSpendingChannel(value) {
+      this.selectedSpendingChannel = value;
     },
 
-    openPaymentDialog() {
-      this.tempPaymentMethod = this.selectedPaymentMethod;
-      this.showPaymentDialog = true;
+    openChannelDialog() {
+      this.tempSpendingChannel = this.selectedSpendingChannel;
+      this.showChannelDialog = true;
     },
 
-    closePaymentDialog() {
-      this.showPaymentDialog = false;
+    closeChannelDialog() {
+      this.showChannelDialog = false;
     },
 
-    confirmPaymentMethod() {
-      this.selectedPaymentMethod = this.tempPaymentMethod;
-      this.closePaymentDialog();
+    confirmSpendingChannel() {
+      this.selectedSpendingChannel = this.tempSpendingChannel;
+      this.closeChannelDialog();
     },
     
     selectCurrency(value) {
@@ -1659,7 +1661,8 @@ export default {
           amount: this.aiRecognizedResult.amount,
           type: this.aiRecognizedResult.type,
           remark: this.aiRecognizedResult.remark || '',
-          paymentMethod: this.selectedPaymentMethod,
+          paymentMethod: 99,
+          spendingChannel: this.aiRecognizedResult.type === 0 ? this.selectedSpendingChannel : 0,
           currency: this.selectedCurrency,
           transactionDate: transactionDateTime,
           imageUrls: this.images.length > 0 ? this.images.map(img => img.storageUrl) : null,
@@ -1669,7 +1672,7 @@ export default {
         this.recordCurrentCategoryUsage(this.aiRecognizedResult.categoryId, this.aiRecognizedResult.type);
         this.saveLastTransactionPrefs(
           this.aiRecognizedResult.categoryId,
-          this.selectedPaymentMethod,
+          this.aiRecognizedResult.type === 0 ? this.selectedSpendingChannel : 0,
           this.aiRecognizedResult.type
         );
         
@@ -1783,7 +1786,8 @@ export default {
           amount: parseFloat(this.amount),
           type: this.transactionType,
           remark: this.remark,
-          paymentMethod: this.selectedPaymentMethod,
+          paymentMethod: 99,
+          spendingChannel: this.transactionType === 0 ? this.selectedSpendingChannel : 0,
           currency: this.selectedCurrency,
           transactionDate: this.transactionDateTime,
           imageUrls: this.images.length > 0 ? this.images.map(img => img.storageUrl) : null,
@@ -1791,7 +1795,7 @@ export default {
         });
         
         this.recordCurrentCategoryUsage(this.selectedCategoryId);
-        this.saveLastTransactionPrefs(this.selectedCategoryId, this.selectedPaymentMethod);
+        this.saveLastTransactionPrefs(this.selectedCategoryId, this.selectedSpendingChannel);
         
         // 清空表单
         this.clearForm();

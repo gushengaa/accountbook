@@ -56,6 +56,12 @@
           <text class="detail-label">备注</text>
           <text class="detail-value remark-value">{{ transaction.remark }}</text>
         </view>
+
+        <!-- 消费渠道（支出） -->
+        <view v-if="transaction.type === 0 && transaction.spendingChannel > 0" class="detail-item">
+          <text class="detail-label">消费渠道</text>
+          <text class="detail-value">{{ transaction.spendingChannelName || '未指定' }}</text>
+        </view>
         
         <!-- 图片 -->
         <view v-if="transaction.images && transaction.images.length > 0" class="detail-item">

@@ -16,6 +16,7 @@ public class TransactionService : ITransactionService
     private readonly TransactionCacheHelper _cacheHelper;
     private readonly OssService _ossService;
     private readonly IPaymentMethodTypeService _paymentMethodTypeService;
+    private readonly ISpendingChannelTypeService _spendingChannelTypeService;
     private readonly ICategoryService _categoryService;
     
     // 币种信息映射 (名称, 符号)
@@ -74,6 +75,29 @@ public class TransactionService : ITransactionService
                 : GetFallbackPaymentMethodName(t.PaymentMethod);
         }
     }
+
+    private static string GetFallbackSpendingChannelName(int value) => value == 0 ? "未指定" : "未知";
+
+    private async Task<string> GetSpendingChannelNameAsync(int value)
+    {
+        if (value == 0)
+            return "未指定";
+        var lookup = await _spendingChannelTypeService.GetNameLookupAsync();
+        return lookup.TryGetValue(value, out var name) ? name : GetFallbackSpendingChannelName(value);
+    }
+
+    private async Task FillSpendingChannelNamesAsync(IEnumerable<TransactionDto> transactions)
+    {
+        var lookup = await _spendingChannelTypeService.GetNameLookupAsync();
+        foreach (var t in transactions)
+        {
+            t.SpendingChannelName = t.SpendingChannel == 0
+                ? "未指定"
+                : lookup.TryGetValue(t.SpendingChannel, out var name)
+                    ? name
+                    : GetFallbackSpendingChannelName(t.SpendingChannel);
+        }
+    }
     
     /// <summary>
     /// 获取币种名称
@@ -97,6 +121,7 @@ public class TransactionService : ITransactionService
         TransactionCacheHelper cacheHelper,
         OssService ossService,
         IPaymentMethodTypeService paymentMethodTypeService,
+        ISpendingChannelTypeService spendingChannelTypeService,
         ICategoryService categoryService)
     {
         _context = context;
@@ -104,6 +129,7 @@ public class TransactionService : ITransactionService
         _cacheHelper = cacheHelper;
         _ossService = ossService;
         _paymentMethodTypeService = paymentMethodTypeService;
+        _spendingChannelTypeService = spendingChannelTypeService;
         _categoryService = categoryService;
     }
 
@@ -225,6 +251,8 @@ public class TransactionService : ITransactionService
                 Remark = t.Remark,
                 PaymentMethod = (int)t.PaymentMethod,
                 PaymentMethodName = string.Empty,
+                SpendingChannel = t.SpendingChannel,
+                SpendingChannelName = string.Empty,
                 Currency = (int)t.Currency,
                 CurrencyName = GetCurrencyName(t.Currency),
                 CurrencySymbol = GetCurrencySymbol(t.Currency),
@@ -237,6 +265,7 @@ public class TransactionService : ITransactionService
             .ToListAsync();
 
         await FillPaymentMethodNamesAsync(result);
+        await FillSpendingChannelNamesAsync(result);
         await LoadImagesForTransactionsAsync(result);
         await LoadAllocationsForTransactionsAsync(result);
         return result;
@@ -283,6 +312,8 @@ public class TransactionService : ITransactionService
                 Remark = t.Remark,
                 PaymentMethod = (int)t.PaymentMethod,
                 PaymentMethodName = string.Empty,
+                SpendingChannel = t.SpendingChannel,
+                SpendingChannelName = string.Empty,
                 Currency = (int)t.Currency,
                 CurrencyName = GetCurrencyName(t.Currency),
                 CurrencySymbol = GetCurrencySymbol(t.Currency),
@@ -295,6 +326,7 @@ public class TransactionService : ITransactionService
             .ToListAsync();
 
         await FillPaymentMethodNamesAsync(result);
+        await FillSpendingChannelNamesAsync(result);
         await LoadImagesForTransactionsAsync(result);
         await LoadAllocationsForTransactionsAsync(result);
         return result;
@@ -709,6 +741,8 @@ public class TransactionService : ITransactionService
                 Remark = t.Remark,
                 PaymentMethod = (int)t.PaymentMethod,
                 PaymentMethodName = string.Empty,
+                SpendingChannel = t.SpendingChannel,
+                SpendingChannelName = string.Empty,
                 Currency = (int)t.Currency,
                 CurrencyName = GetCurrencyName(t.Currency),
                 CurrencySymbol = GetCurrencySymbol(t.Currency),
@@ -721,6 +755,7 @@ public class TransactionService : ITransactionService
             .ToListAsync();
 
         await FillPaymentMethodNamesAsync(result);
+        await FillSpendingChannelNamesAsync(result);
         await LoadImagesForTransactionsAsync(result);
         await LoadAllocationsForTransactionsAsync(result);
         return result;
@@ -854,6 +889,8 @@ public class TransactionService : ITransactionService
             Remark = transaction.Remark,
             PaymentMethod = (int)transaction.PaymentMethod,
             PaymentMethodName = await GetPaymentMethodNameAsync((int)transaction.PaymentMethod),
+            SpendingChannel = transaction.SpendingChannel,
+            SpendingChannelName = await GetSpendingChannelNameAsync(transaction.SpendingChannel),
             Currency = (int)transaction.Currency,
             CurrencyName = GetCurrencyName(transaction.Currency),
             CurrencySymbol = GetCurrencySymbol(transaction.Currency),
@@ -901,6 +938,10 @@ public class TransactionService : ITransactionService
         if (!await _paymentMethodTypeService.IsValidPaymentMethodAsync(request.PaymentMethod))
             throw new Exception("支付方式无效或已停用");
 
+        var spendingChannel = request.Type == 0 ? request.SpendingChannel : 0;
+        if (!await _spendingChannelTypeService.IsValidSpendingChannelAsync(spendingChannel))
+            throw new Exception("消费渠道无效或已停用");
+
         // 确保 TransactionDate 是 UTC 时间
         var transactionDate = request.TransactionDate.Kind == DateTimeKind.Unspecified
             ? DateTime.SpecifyKind(request.TransactionDate, DateTimeKind.Utc)
@@ -915,6 +956,7 @@ public class TransactionService : ITransactionService
             Type = request.Type,
             Remark = request.Remark,
             PaymentMethod = (PaymentMethod)request.PaymentMethod,
+            SpendingChannel = spendingChannel,
             Currency = (Currency)request.Currency,
             TransactionDate = transactionDate,
             CreatedAt = DateTime.UtcNow,
@@ -1013,6 +1055,8 @@ public class TransactionService : ITransactionService
             Remark = transaction.Remark,
             PaymentMethod = (int)transaction.PaymentMethod,
             PaymentMethodName = await GetPaymentMethodNameAsync((int)transaction.PaymentMethod),
+            SpendingChannel = transaction.SpendingChannel,
+            SpendingChannelName = await GetSpendingChannelNameAsync(transaction.SpendingChannel),
             Currency = (int)transaction.Currency,
             CurrencyName = GetCurrencyName(transaction.Currency),
             CurrencySymbol = GetCurrencySymbol(transaction.Currency),
@@ -1058,6 +1102,10 @@ public class TransactionService : ITransactionService
         if (!await _paymentMethodTypeService.IsValidPaymentMethodAsync(request.PaymentMethod))
             throw new Exception("支付方式无效或已停用");
 
+        var spendingChannel = transaction.Type == 0 ? request.SpendingChannel : 0;
+        if (!await _spendingChannelTypeService.IsValidSpendingChannelAsync(spendingChannel))
+            throw new Exception("消费渠道无效或已停用");
+
         // 确保 TransactionDate 是 UTC 时间
         var transactionDate = request.TransactionDate.Kind == DateTimeKind.Unspecified
             ? DateTime.SpecifyKind(request.TransactionDate, DateTimeKind.Utc)
@@ -1067,6 +1115,7 @@ public class TransactionService : ITransactionService
         transaction.Amount = (long)(request.Amount * 100);
         transaction.Remark = request.Remark;
         transaction.PaymentMethod = (PaymentMethod)request.PaymentMethod;
+        transaction.SpendingChannel = spendingChannel;
         transaction.Currency = (Currency)request.Currency;
         transaction.TransactionDate = transactionDate;
         transaction.UpdatedAt = DateTime.UtcNow;
@@ -1170,6 +1219,8 @@ public class TransactionService : ITransactionService
             Remark = transaction.Remark,
             PaymentMethod = (int)transaction.PaymentMethod,
             PaymentMethodName = await GetPaymentMethodNameAsync((int)transaction.PaymentMethod),
+            SpendingChannel = transaction.SpendingChannel,
+            SpendingChannelName = await GetSpendingChannelNameAsync(transaction.SpendingChannel),
             Currency = (int)transaction.Currency,
             CurrencyName = GetCurrencyName(transaction.Currency),
             CurrencySymbol = GetCurrencySymbol(transaction.Currency),

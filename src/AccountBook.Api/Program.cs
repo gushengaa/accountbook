@@ -198,6 +198,7 @@ builder.Services.AddScoped<IAccountBookService, AccountBookService>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IPaymentMethodTypeService, PaymentMethodTypeService>();
+builder.Services.AddScoped<ISpendingChannelTypeService, SpendingChannelTypeService>();
 builder.Services.AddScoped<IBookPurposeCategoryService, BookPurposeCategoryService>();
 builder.Services.AddScoped<ICurrencyRateService, CurrencyRateService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();

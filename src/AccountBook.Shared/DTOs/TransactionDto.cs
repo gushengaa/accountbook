@@ -20,6 +20,8 @@ public class TransactionDto
     public string? Remark { get; set; }
     public int PaymentMethod { get; set; } // 支付方式
     public string PaymentMethodName { get; set; } = string.Empty; // 支付方式名称
+    public int SpendingChannel { get; set; } // 消费渠道
+    public string SpendingChannelName { get; set; } = string.Empty; // 消费渠道名称
     public int Currency { get; set; } // 币种
     public string CurrencyName { get; set; } = string.Empty; // 币种名称
     public string CurrencySymbol { get; set; } = string.Empty; // 币种符号
@@ -62,7 +64,8 @@ public class CreateTransactionRequest
     public decimal Amount { get; set; }
     public int Type { get; set; }
     public string? Remark { get; set; }
-    public int PaymentMethod { get; set; } = 0; // 支付方式，默认现金
+    public int PaymentMethod { get; set; } = 99; // 支付方式，默认其他（记一笔页不再选择）
+    public int SpendingChannel { get; set; } = 0; // 消费渠道，默认未指定
     public int Currency { get; set; } = 0; // 币种，默认人民币
     public DateTime TransactionDate { get; set; } = DateTime.UtcNow;
     public List<string>? ImageUrls { get; set; }
@@ -81,6 +84,7 @@ public class UpdateTransactionRequest
     public decimal Amount { get; set; }
     public string? Remark { get; set; }
     public int PaymentMethod { get; set; } // 支付方式
+    public int SpendingChannel { get; set; } // 消费渠道
     public int Currency { get; set; } // 币种
     public DateTime TransactionDate { get; set; }
     public List<string>? ImageUrls { get; set; }

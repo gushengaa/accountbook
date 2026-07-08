@@ -87,9 +87,13 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   }, $props.transaction.remark ? {
     t: common_vendor.t($props.transaction.remark)
   } : {}, {
-    v: $props.transaction.images && $props.transaction.images.length > 0
+    v: $props.transaction.type === 0 && $props.transaction.spendingChannel > 0
+  }, $props.transaction.type === 0 && $props.transaction.spendingChannel > 0 ? {
+    w: common_vendor.t($props.transaction.spendingChannelName || "未指定")
+  } : {}, {
+    x: $props.transaction.images && $props.transaction.images.length > 0
   }, $props.transaction.images && $props.transaction.images.length > 0 ? {
-    w: common_vendor.f($props.transaction.images, (img, index, i0) => {
+    y: common_vendor.f($props.transaction.images, (img, index, i0) => {
       return {
         a: img.imageUrl,
         b: img.id || index,
@@ -97,9 +101,9 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       };
     })
   } : {}) : {}, {
-    x: common_vendor.o(() => {
+    z: common_vendor.o(() => {
     }, "e7"),
-    y: common_vendor.o((...args) => $options.handleClose && $options.handleClose(...args), "d4")
+    A: common_vendor.o((...args) => $options.handleClose && $options.handleClose(...args), "d4")
   }) : {});
 }
 const Component = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render], ["__scopeId", "data-v-39dda92e"]]);

@@ -155,8 +155,8 @@ const _sfc_main = {
         return "今天";
       return `${d.getMonth() + 1}/${d.getDate()}`;
     },
-    currentPaymentMethod() {
-      return this.paymentMethods.find((m) => m.value === this.selectedPaymentMethod) || this.paymentMethods[0] || null;
+    currentSpendingChannel() {
+      return this.spendingChannels.find((c) => c.value === this.selectedSpendingChannel) || this.spendingChannels[0] || null;
     },
     showAllocationBar() {
       const book = this.displayAccountBook;
@@ -184,8 +184,7 @@ const _sfc_main = {
       selectedCategoryId: null,
       selectedParentId: null,
       // 当前选中的父分类ID
-      selectedPaymentMethod: 0,
-      // 支付方式，默认现金
+      selectedSpendingChannel: 0,
       remark: "",
       transactionDate: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
       // 显示用的日期
@@ -201,8 +200,7 @@ const _sfc_main = {
       // 一起账本ID（从URL参数获取）
       selectedAccountBook: null,
       // 从首页选择的账本
-      // 支付方式列表（从 API 加载，以下为兜底）
-      paymentMethods: [],
+      spendingChannels: [],
       // 币种列表（从API获取）
       currencies: [],
       selectedCurrency: 0,
@@ -224,8 +222,8 @@ const _sfc_main = {
       // 是否显示备注弹窗
       tempRemark: "",
       // 临时备注内容
-      showPaymentDialog: false,
-      tempPaymentMethod: 0,
+      showChannelDialog: false,
+      tempSpendingChannel: 0,
       isRecording: false,
       // 是否正在录音
       recordingManager: null,
@@ -270,7 +268,7 @@ const _sfc_main = {
       this.resolveDefaultAccountBookIfNeeded();
     }
     this.loadCurrencies();
-    this.loadPaymentMethods();
+    this.loadSpendingChannels();
   },
   onShow() {
     if (this.addTransactionType !== null) {
@@ -283,7 +281,7 @@ const _sfc_main = {
     } else {
       this.loadCategories();
     }
-    this.loadPaymentMethods();
+    this.loadSpendingChannels();
     if (this.switchToAITab) {
       this.activeTab = "ai";
       this.$store.dispatch("setSwitchToAITab", false);
@@ -513,27 +511,27 @@ const _sfc_main = {
         this.categories = await utils_api.api.categories.getList(this.transactionType, accountBookId);
         this.applyLastTransactionDefaults();
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1021", "加载分类失败", error);
+        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1020", "加载分类失败", error);
         common_vendor.index.showToast({
           title: "加载分类失败",
           icon: "none"
         });
       }
     },
-    async loadPaymentMethods() {
+    async loadSpendingChannels() {
       try {
-        const list = await utils_api.api.paymentMethodTypes.getList();
+        const list = await utils_api.api.spendingChannelTypes.getList();
         if (Array.isArray(list) && list.length > 0) {
-          this.paymentMethods = list.map((item) => ({
+          this.spendingChannels = list.map((item) => ({
             value: item.value,
             name: item.name,
-            icon: item.icon || "💳",
+            icon: item.icon || "🛒",
             color: item.color || "#BFBFBF"
           }));
           this.applyLastTransactionDefaults();
         }
       } catch (error) {
-        common_vendor.index.__f__("warn", "at pages/add-transaction/add-transaction.vue:1042", "加载支付方式失败", error);
+        common_vendor.index.__f__("warn", "at pages/add-transaction/add-transaction.vue:1041", "加载消费渠道失败", error);
       }
     },
     applyLastTransactionDefaults() {
@@ -554,10 +552,13 @@ const _sfc_main = {
         this.selectedCategoryId = null;
         this.selectedParentId = null;
       }
-      if (this.paymentMethods.length > 0) {
-        this.selectedPaymentMethod = this.paymentMethods[0].value;
+      const lastChannel = utils_lastTransactionPrefs.getLastSpendingChannel(this.transactionType, accountBookId);
+      if (lastChannel != null && this.spendingChannels.some((c) => c.value === lastChannel)) {
+        this.selectedSpendingChannel = lastChannel;
+      } else if (this.spendingChannels.length > 0) {
+        this.selectedSpendingChannel = this.spendingChannels[0].value;
       } else {
-        this.selectedPaymentMethod = 0;
+        this.selectedSpendingChannel = 0;
       }
     },
     async resolveDefaultAccountBookIfNeeded() {
@@ -567,12 +568,12 @@ const _sfc_main = {
       try {
         personalAccountBooks = await utils_api.api.accountBooks.getList();
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1080", "加载个人账本失败", e);
+        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1082", "加载个人账本失败", e);
       }
       try {
         sharedAccountBooks = await utils_api.api.sharedAccountBooks.getList();
       } catch (e) {
-        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1085", "加载一起账本失败", e);
+        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1087", "加载一起账本失败", e);
       }
       const resolved = utils_lastUsedAccountBook.resolveAccountBookForAdd({
         accountBookTab,
@@ -587,13 +588,13 @@ const _sfc_main = {
       }
       this.loadCategories();
     },
-    saveLastTransactionPrefs(categoryId, paymentMethod, transactionType = this.transactionType) {
+    saveLastTransactionPrefs(categoryId, spendingChannel, transactionType = this.transactionType) {
       const book = this.displayAccountBook;
       if (!book || book.id == null)
         return;
       utils_lastTransactionPrefs.recordLastTransactionPrefs(transactionType, book.id, {
         categoryId,
-        paymentMethod
+        spendingChannel
       });
       utils_lastUsedAccountBook.recordLastUsedAccountBook(book);
     },
@@ -609,7 +610,7 @@ const _sfc_main = {
         try {
           shared = await utils_api.api.sharedAccountBooks.getList();
         } catch (e) {
-          common_vendor.index.__f__("warn", "at pages/add-transaction/add-transaction.vue:1126", "加载一起账本失败", e);
+          common_vendor.index.__f__("warn", "at pages/add-transaction/add-transaction.vue:1128", "加载一起账本失败", e);
         }
         this.bookPickerOptions = [
           ...personal.filter((b) => b.status !== 1).map((b) => ({ ...b, type: 0 })),
@@ -621,7 +622,7 @@ const _sfc_main = {
         }
         this.showBookPicker = true;
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1138", "加载账本列表失败", error);
+        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1140", "加载账本列表失败", error);
         common_vendor.index.showToast({ title: "加载账本失败", icon: "none" });
       }
     },
@@ -653,7 +654,7 @@ const _sfc_main = {
           }
         }
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1176", "加载币种列表失败", error);
+        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1178", "加载币种列表失败", error);
         this.currencies = [
           { value: 0, name: "人民币", symbol: "¥" }
         ];
@@ -674,7 +675,7 @@ const _sfc_main = {
           this.loadCategories();
         }
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1202", "加载账本信息失败", error);
+        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1204", "加载账本信息失败", error);
         this.selectedAccountBook = null;
       }
     },
@@ -775,7 +776,7 @@ const _sfc_main = {
         const list = await utils_api.api.accountBookCategories.getManageList(book.id, this.transactionType);
         this.manageCategoryList = Array.isArray(list) ? list : [];
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1311", "加载分类管理列表失败", error);
+        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1313", "加载分类管理列表失败", error);
         this.manageCategoryList = [];
         common_vendor.index.showToast({ title: "加载失败", icon: "none" });
       } finally {
@@ -792,7 +793,7 @@ const _sfc_main = {
           categoryIds: this.manageCategoryList.map((item) => item.id)
         });
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1328", "保存分类排序失败", error);
+        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1330", "保存分类排序失败", error);
         common_vendor.index.showToast({ title: "排序保存失败", icon: "none" });
       }
     },
@@ -895,19 +896,19 @@ const _sfc_main = {
         categoryId
       );
     },
-    selectPaymentMethod(value) {
-      this.selectedPaymentMethod = value;
+    selectSpendingChannel(value) {
+      this.selectedSpendingChannel = value;
     },
-    openPaymentDialog() {
-      this.tempPaymentMethod = this.selectedPaymentMethod;
-      this.showPaymentDialog = true;
+    openChannelDialog() {
+      this.tempSpendingChannel = this.selectedSpendingChannel;
+      this.showChannelDialog = true;
     },
-    closePaymentDialog() {
-      this.showPaymentDialog = false;
+    closeChannelDialog() {
+      this.showChannelDialog = false;
     },
-    confirmPaymentMethod() {
-      this.selectedPaymentMethod = this.tempPaymentMethod;
-      this.closePaymentDialog();
+    confirmSpendingChannel() {
+      this.selectedSpendingChannel = this.tempSpendingChannel;
+      this.closeChannelDialog();
     },
     selectCurrency(value) {
       this.selectedCurrency = value;
@@ -964,7 +965,7 @@ const _sfc_main = {
           }
         }
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1516", "上传图片失败", error);
+        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1518", "上传图片失败", error);
         common_vendor.index.showToast({
           title: error.message || "上传图片失败",
           icon: "none",
@@ -1023,7 +1024,7 @@ const _sfc_main = {
         this.aiRecognizedResult = result;
         this.showAiConfirmDialog = true;
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1586", "AI识别失败", error);
+        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1588", "AI识别失败", error);
         common_vendor.index.showToast({
           title: error.message || "识别失败，请重试",
           icon: "none"
@@ -1086,7 +1087,8 @@ const _sfc_main = {
           amount: this.aiRecognizedResult.amount,
           type: this.aiRecognizedResult.type,
           remark: this.aiRecognizedResult.remark || "",
-          paymentMethod: this.selectedPaymentMethod,
+          paymentMethod: 99,
+          spendingChannel: this.aiRecognizedResult.type === 0 ? this.selectedSpendingChannel : 0,
           currency: this.selectedCurrency,
           transactionDate: transactionDateTime,
           imageUrls: this.images.length > 0 ? this.images.map((img) => img.storageUrl) : null,
@@ -1095,7 +1097,7 @@ const _sfc_main = {
         this.recordCurrentCategoryUsage(this.aiRecognizedResult.categoryId, this.aiRecognizedResult.type);
         this.saveLastTransactionPrefs(
           this.aiRecognizedResult.categoryId,
-          this.selectedPaymentMethod,
+          this.aiRecognizedResult.type === 0 ? this.selectedSpendingChannel : 0,
           this.aiRecognizedResult.type
         );
         this.clearForm();
@@ -1114,7 +1116,7 @@ const _sfc_main = {
           }
         }, 1500);
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1699", "保存失败", error);
+        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1702", "保存失败", error);
         if (error.message && error.message.includes("需要授权")) {
           common_vendor.index.showModal({
             title: "需要登录",
@@ -1188,14 +1190,15 @@ const _sfc_main = {
           amount: parseFloat(this.amount),
           type: this.transactionType,
           remark: this.remark,
-          paymentMethod: this.selectedPaymentMethod,
+          paymentMethod: 99,
+          spendingChannel: this.transactionType === 0 ? this.selectedSpendingChannel : 0,
           currency: this.selectedCurrency,
           transactionDate: this.transactionDateTime,
           imageUrls: this.images.length > 0 ? this.images.map((img) => img.storageUrl) : null,
           allocationUserIds: targetAccountBook.type === 1 && this.transactionType === 0 && this.allocationUserIds && this.allocationUserIds.length > 0 ? this.allocationUserIds : void 0
         });
         this.recordCurrentCategoryUsage(this.selectedCategoryId);
-        this.saveLastTransactionPrefs(this.selectedCategoryId, this.selectedPaymentMethod);
+        this.saveLastTransactionPrefs(this.selectedCategoryId, this.selectedSpendingChannel);
         this.clearForm();
         common_vendor.index.showToast({
           title: "保存成功",
@@ -1212,7 +1215,7 @@ const _sfc_main = {
           }
         }, 1500);
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1819", "保存失败", error);
+        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1823", "保存失败", error);
         if (error.message && error.message.includes("需要授权")) {
           common_vendor.index.showModal({
             title: "需要登录",
@@ -1290,10 +1293,10 @@ const _sfc_main = {
       this.isRecording = true;
       this.recordingManager = common_vendor.index.getRecorderManager();
       this.recordingManager.onStart(() => {
-        common_vendor.index.__f__("log", "at pages/add-transaction/add-transaction.vue:1912", "录音开始");
+        common_vendor.index.__f__("log", "at pages/add-transaction/add-transaction.vue:1916", "录音开始");
       });
       this.recordingManager.onError((err) => {
-        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1916", "录音错误", err);
+        common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:1920", "录音错误", err);
         this.isRecording = false;
         common_vendor.index.showToast({
           title: "录音失败，请重试",
@@ -1322,7 +1325,7 @@ const _sfc_main = {
       this.isRecording = false;
       this.recordingManager.stop();
       this.recordingManager.onStop(async (res) => {
-        common_vendor.index.__f__("log", "at pages/add-transaction/add-transaction.vue:1949", "录音结束", res);
+        common_vendor.index.__f__("log", "at pages/add-transaction/add-transaction.vue:1953", "录音结束", res);
         if (res.duration < 1e3) {
           common_vendor.index.showToast({
             title: "录音时间太短，请重新录音",
@@ -1363,7 +1366,7 @@ const _sfc_main = {
                 resolve(readRes.data);
               },
               fail: (err) => {
-                common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:2002", "读取录音文件失败", err);
+                common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:2006", "读取录音文件失败", err);
                 reject(new Error("读取录音文件失败"));
               }
             });
@@ -1407,7 +1410,7 @@ const _sfc_main = {
             });
           }
         } catch (error) {
-          common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:2054", "语音识别失败", error);
+          common_vendor.index.__f__("error", "at pages/add-transaction/add-transaction.vue:2058", "语音识别失败", error);
           common_vendor.index.hideToast();
           let errorMessage = "语音识别失败，请重试";
           if (error.message) {
@@ -1483,28 +1486,31 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     }),
     q: common_vendor.o((...args) => $options.openCustomCategoryFromGrid && $options.openCustomCategoryFromGrid(...args), "e3")
   } : {}, {
-    r: common_vendor.p({
-      name: "wallet",
+    r: $data.transactionType === 0
+  }, $data.transactionType === 0 ? common_vendor.e({
+    s: common_vendor.p({
+      name: "shop",
       size: 18,
       color: "#999999"
     }),
-    s: $options.currentPaymentMethod
-  }, $options.currentPaymentMethod ? {
-    t: common_vendor.t($options.currentPaymentMethod.name)
+    t: $options.currentSpendingChannel
+  }, $options.currentSpendingChannel ? {
+    v: common_vendor.t($options.currentSpendingChannel.name)
   } : {}, {
-    v: common_vendor.o((...args) => $options.openPaymentDialog && $options.openPaymentDialog(...args), "d9"),
-    w: common_vendor.t($data.amountExpression || "0"),
-    x: common_vendor.p({
+    w: common_vendor.o((...args) => $options.openChannelDialog && $options.openChannelDialog(...args), "b3")
+  }) : {}, {
+    x: common_vendor.t($data.amountExpression || "0"),
+    y: common_vendor.p({
       name: "book",
       size: 18,
       color: "#999999"
     }),
-    y: common_vendor.t($data.remark),
-    z: common_vendor.t($data.remark ? "修改" : "添加备注"),
-    A: common_vendor.o((...args) => $options.openRemarkDialog && $options.openRemarkDialog(...args), "66"),
-    B: $data.transactionType === 0
+    z: common_vendor.t($data.remark),
+    A: common_vendor.t($data.remark ? "修改" : "添加备注"),
+    B: common_vendor.o((...args) => $options.openRemarkDialog && $options.openRemarkDialog(...args), "35"),
+    C: $data.transactionType === 0
   }, $data.transactionType === 0 ? common_vendor.e({
-    C: common_vendor.f($data.images, (image, index, i0) => {
+    D: common_vendor.f($data.images, (image, index, i0) => {
       return {
         a: image.displayUrl,
         b: common_vendor.o(($event) => $options.previewImage(index), index),
@@ -1512,23 +1518,23 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         d: index
       };
     }),
-    D: $data.images.length < 9
+    E: $data.images.length < 9
   }, $data.images.length < 9 ? {
-    E: common_vendor.p({
+    F: common_vendor.p({
       name: "image",
       size: 18,
       color: "#2064f5a8"
     }),
-    F: common_vendor.o((...args) => $options.chooseImage && $options.chooseImage(...args), "4a")
+    G: common_vendor.o((...args) => $options.chooseImage && $options.chooseImage(...args), "e2")
   } : {}) : {}, {
-    G: $options.showAllocationBar
+    H: $options.showAllocationBar
   }, $options.showAllocationBar ? {
-    H: common_vendor.p({
+    I: common_vendor.p({
       name: "team",
       size: 18,
       color: "#999999"
     }),
-    I: common_vendor.f($options.allocationMembers, (member, k0, i0) => {
+    J: common_vendor.f($options.allocationMembers, (member, k0, i0) => {
       return common_vendor.e({
         a: member.userAvatar
       }, member.userAvatar ? {
@@ -1542,44 +1548,44 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         g: common_vendor.o(($event) => $options.toggleAllocation(member.userId), member.userId)
       });
     }),
-    J: common_vendor.t($options.selectedAllocationCount)
+    K: common_vendor.t($options.selectedAllocationCount)
   } : {}, {
-    K: common_vendor.o(($event) => $options.onKeypadPress("1"), "3c"),
-    L: common_vendor.o(($event) => $options.onKeypadPress("2"), "48"),
-    M: common_vendor.o(($event) => $options.onKeypadPress("3"), "3a"),
-    N: common_vendor.p({
+    L: common_vendor.o(($event) => $options.onKeypadPress("1"), "41"),
+    M: common_vendor.o(($event) => $options.onKeypadPress("2"), "b3"),
+    N: common_vendor.o(($event) => $options.onKeypadPress("3"), "9b"),
+    O: common_vendor.p({
       name: "calendar",
       size: 22,
       color: "#666666"
     }),
-    O: common_vendor.t($options.dateKeypadLabel),
-    P: $data.transactionDate,
-    Q: common_vendor.o((...args) => $options.onDateChange && $options.onDateChange(...args), "8b"),
-    R: common_vendor.o(($event) => $options.onKeypadPress("4"), "43"),
-    S: common_vendor.o(($event) => $options.onKeypadPress("5"), "80"),
-    T: common_vendor.o(($event) => $options.onKeypadPress("6"), "8b"),
-    U: common_vendor.o(($event) => $options.onKeypadPress("+"), "66"),
-    V: common_vendor.o(($event) => $options.onKeypadPress("7"), "e8"),
-    W: common_vendor.o(($event) => $options.onKeypadPress("8"), "66"),
-    X: common_vendor.o(($event) => $options.onKeypadPress("9"), "98"),
-    Y: common_vendor.o(($event) => $options.onKeypadPress("-"), "b2"),
-    Z: common_vendor.o(($event) => $options.onKeypadPress("."), "81"),
-    aa: common_vendor.o(($event) => $options.onKeypadPress("0"), "ab"),
-    ab: common_vendor.p({
+    P: common_vendor.t($options.dateKeypadLabel),
+    Q: $data.transactionDate,
+    R: common_vendor.o((...args) => $options.onDateChange && $options.onDateChange(...args), "cf"),
+    S: common_vendor.o(($event) => $options.onKeypadPress("4"), "93"),
+    T: common_vendor.o(($event) => $options.onKeypadPress("5"), "8f"),
+    U: common_vendor.o(($event) => $options.onKeypadPress("6"), "84"),
+    V: common_vendor.o(($event) => $options.onKeypadPress("+"), "7e"),
+    W: common_vendor.o(($event) => $options.onKeypadPress("7"), "66"),
+    X: common_vendor.o(($event) => $options.onKeypadPress("8"), "54"),
+    Y: common_vendor.o(($event) => $options.onKeypadPress("9"), "1f"),
+    Z: common_vendor.o(($event) => $options.onKeypadPress("-"), "72"),
+    aa: common_vendor.o(($event) => $options.onKeypadPress("."), "c7"),
+    ab: common_vendor.o(($event) => $options.onKeypadPress("0"), "af"),
+    ac: common_vendor.p({
       name: "delete-bin",
       size: 22,
       color: "#333333"
     }),
-    ac: common_vendor.o(($event) => $options.onKeypadPress("back"), "5e"),
-    ad: common_vendor.t($data.saving ? "..." : $options.isAccountBookEnded ? "已结束" : "保存"),
-    ae: $options.isAccountBookEnded || $data.saving ? 1 : "",
-    af: common_vendor.o((...args) => $options.saveTransaction && $options.saveTransaction(...args), "20"),
-    ag: $data.showExtrasDrawer
+    ad: common_vendor.o(($event) => $options.onKeypadPress("back"), "c8"),
+    ae: common_vendor.t($data.saving ? "..." : $options.isAccountBookEnded ? "已结束" : "保存"),
+    af: $options.isAccountBookEnded || $data.saving ? 1 : "",
+    ag: common_vendor.o((...args) => $options.saveTransaction && $options.saveTransaction(...args), "e8"),
+    ah: $data.showExtrasDrawer
   }, $data.showExtrasDrawer ? common_vendor.e({
-    ah: common_vendor.o((...args) => $options.closeExtrasDrawer && $options.closeExtrasDrawer(...args), "ab"),
-    ai: $data.currencies.length > 0
+    ai: common_vendor.o((...args) => $options.closeExtrasDrawer && $options.closeExtrasDrawer(...args), "66"),
+    aj: $data.currencies.length > 0
   }, $data.currencies.length > 0 ? {
-    aj: common_vendor.f($data.currencies, (currency, k0, i0) => {
+    ak: common_vendor.f($data.currencies, (currency, k0, i0) => {
       return {
         a: common_vendor.t(currency.symbol),
         b: common_vendor.t(currency.name),
@@ -1589,76 +1595,76 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       };
     })
   } : {}, {
-    ak: common_vendor.p({
+    al: common_vendor.p({
       name: "mic",
       size: 20,
       color: "#F5A623"
     }),
-    al: common_vendor.o((...args) => $options.openVoiceFromExtras && $options.openVoiceFromExtras(...args), "65"),
-    am: common_vendor.o(() => {
-    }, "35"),
-    an: common_vendor.o((...args) => $options.closeExtrasDrawer && $options.closeExtrasDrawer(...args), "f1")
+    am: common_vendor.o((...args) => $options.openVoiceFromExtras && $options.openVoiceFromExtras(...args), "e2"),
+    an: common_vendor.o(() => {
+    }, "e5"),
+    ao: common_vendor.o((...args) => $options.closeExtrasDrawer && $options.closeExtrasDrawer(...args), "48")
   }) : {}, {
-    ao: $data.showAiConfirmDialog
+    ap: $data.showAiConfirmDialog
   }, $data.showAiConfirmDialog ? common_vendor.e({
-    ap: common_vendor.o(($event) => $data.showAiConfirmDialog = false, "31"),
-    aq: common_vendor.t(((_a = $data.aiRecognizedResult) == null ? void 0 : _a.type) === 0 ? "支出" : "收入"),
-    ar: common_vendor.t((_c = (_b = $data.aiRecognizedResult) == null ? void 0 : _b.amount) == null ? void 0 : _c.toFixed(2)),
-    as: common_vendor.p({
+    aq: common_vendor.o(($event) => $data.showAiConfirmDialog = false, "8e"),
+    ar: common_vendor.t(((_a = $data.aiRecognizedResult) == null ? void 0 : _a.type) === 0 ? "支出" : "收入"),
+    as: common_vendor.t((_c = (_b = $data.aiRecognizedResult) == null ? void 0 : _b.amount) == null ? void 0 : _c.toFixed(2)),
+    at: common_vendor.p({
       icon: ((_d = $data.aiRecognizedResult) == null ? void 0 : _d.categoryIcon) || "📝",
       ["category-name"]: (_e = $data.aiRecognizedResult) == null ? void 0 : _e.categoryName,
       size: 16,
       color: "#FFFFFF"
     }),
-    at: ((_f = $data.aiRecognizedResult) == null ? void 0 : _f.categoryColor) || "#AA96DA",
-    av: common_vendor.t((_g = $data.aiRecognizedResult) == null ? void 0 : _g.categoryName),
-    aw: (_h = $data.aiRecognizedResult) == null ? void 0 : _h.remark
+    av: ((_f = $data.aiRecognizedResult) == null ? void 0 : _f.categoryColor) || "#AA96DA",
+    aw: common_vendor.t((_g = $data.aiRecognizedResult) == null ? void 0 : _g.categoryName),
+    ax: (_h = $data.aiRecognizedResult) == null ? void 0 : _h.remark
   }, ((_i = $data.aiRecognizedResult) == null ? void 0 : _i.remark) ? {
-    ax: common_vendor.t($data.aiRecognizedResult.remark)
+    ay: common_vendor.t($data.aiRecognizedResult.remark)
   } : {}, {
-    ay: (_j = $data.aiRecognizedResult) == null ? void 0 : _j.transactionDate
+    az: (_j = $data.aiRecognizedResult) == null ? void 0 : _j.transactionDate
   }, ((_k = $data.aiRecognizedResult) == null ? void 0 : _k.transactionDate) ? {
-    az: common_vendor.t($options.formatDate($data.aiRecognizedResult.transactionDate))
+    aA: common_vendor.t($options.formatDate($data.aiRecognizedResult.transactionDate))
   } : {}, {
-    aA: common_vendor.o(($event) => $data.showAiConfirmDialog = false, "10"),
-    aB: $data.saving,
-    aC: common_vendor.t($data.saving ? "提交中..." : "确认"),
-    aD: common_vendor.o((...args) => $options.confirmAiResult && $options.confirmAiResult(...args), "c3"),
-    aE: $data.saving,
+    aB: common_vendor.o(($event) => $data.showAiConfirmDialog = false, "14"),
+    aC: $data.saving,
+    aD: common_vendor.t($data.saving ? "提交中..." : "确认"),
+    aE: common_vendor.o((...args) => $options.confirmAiResult && $options.confirmAiResult(...args), "67"),
     aF: $data.saving,
-    aG: common_vendor.o(() => {
-    }, "73"),
-    aH: common_vendor.o(($event) => $data.showAiConfirmDialog = false, "db")
+    aG: $data.saving,
+    aH: common_vendor.o(() => {
+    }, "a5"),
+    aI: common_vendor.o(($event) => $data.showAiConfirmDialog = false, "90")
   }) : {}, {
-    aI: $data.showVoiceDialog
+    aJ: $data.showVoiceDialog
   }, $data.showVoiceDialog ? {
-    aJ: common_vendor.o($options.showVoiceSettings, "bd"),
-    aK: common_vendor.p({
+    aK: common_vendor.o($options.showVoiceSettings, "be"),
+    aL: common_vendor.p({
       name: "gear",
       size: 20,
       color: "#666666"
     }),
-    aL: common_vendor.o($options.showVoiceHelp, "5b"),
-    aM: common_vendor.p({
+    aM: common_vendor.o($options.showVoiceHelp, "d2"),
+    aN: common_vendor.p({
       name: "help",
       size: 20,
       color: "#666666"
     }),
-    aN: common_vendor.o((...args) => $options.closeVoiceDialog && $options.closeVoiceDialog(...args), "5a"),
-    aO: common_vendor.f(5, (n, k0, i0) => {
+    aO: common_vendor.o((...args) => $options.closeVoiceDialog && $options.closeVoiceDialog(...args), "83"),
+    aP: common_vendor.f(5, (n, k0, i0) => {
       return {
         a: n,
         b: (n - 1) * 0.15 + "s"
       };
     }),
-    aP: common_vendor.o((...args) => $options.stopRecording && $options.stopRecording(...args), "e0"),
-    aQ: common_vendor.o(() => {
-    }, "30"),
-    aR: common_vendor.o((...args) => $options.closeVoiceDialog && $options.closeVoiceDialog(...args), "2d")
+    aQ: common_vendor.o((...args) => $options.stopRecording && $options.stopRecording(...args), "05"),
+    aR: common_vendor.o(() => {
+    }, "ff"),
+    aS: common_vendor.o((...args) => $options.closeVoiceDialog && $options.closeVoiceDialog(...args), "d4")
   } : {}, {
-    aS: $data.showCategoryDrawer
+    aT: $data.showCategoryDrawer
   }, $data.showCategoryDrawer ? common_vendor.e({
-    aT: common_vendor.f($data.categories, (parent, k0, i0) => {
+    aU: common_vendor.f($data.categories, (parent, k0, i0) => {
       return common_vendor.e({
         a: common_vendor.t(parent.name),
         b: parent.children && parent.children.length
@@ -1699,22 +1705,22 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         i: parent.id
       });
     }),
-    aU: $options.canManageBookCategories
+    aV: $options.canManageBookCategories
   }, $options.canManageBookCategories ? {
-    aV: common_vendor.o((...args) => $options.openCustomCategoryDrawer && $options.openCustomCategoryDrawer(...args), "22")
+    aW: common_vendor.o((...args) => $options.openCustomCategoryDrawer && $options.openCustomCategoryDrawer(...args), "38")
   } : {}, {
-    aW: $data.drawerSelectedCategoryId != null ? 1 : "",
-    aX: common_vendor.o((...args) => $options.confirmDrawerCategory && $options.confirmDrawerCategory(...args), "bc"),
-    aY: common_vendor.o(() => {
-    }, "0f"),
-    aZ: common_vendor.o((...args) => $options.closeCategoryDrawer && $options.closeCategoryDrawer(...args), "e2")
+    aX: $data.drawerSelectedCategoryId != null ? 1 : "",
+    aY: common_vendor.o((...args) => $options.confirmDrawerCategory && $options.confirmDrawerCategory(...args), "27"),
+    aZ: common_vendor.o(() => {
+    }, "b5"),
+    ba: common_vendor.o((...args) => $options.closeCategoryDrawer && $options.closeCategoryDrawer(...args), "ee")
   }) : {}, {
-    ba: $data.showCustomCategoryDrawer
+    bb: $data.showCustomCategoryDrawer
   }, $data.showCustomCategoryDrawer ? common_vendor.e({
-    bb: common_vendor.o((...args) => $options.closeCustomCategoryDrawer && $options.closeCustomCategoryDrawer(...args), "71"),
-    bc: $data.manageCategoryLoading
+    bc: common_vendor.o((...args) => $options.closeCustomCategoryDrawer && $options.closeCustomCategoryDrawer(...args), "92"),
+    bd: $data.manageCategoryLoading
   }, $data.manageCategoryLoading ? {} : {
-    bd: common_vendor.f($data.manageCategoryList, (item, index, i0) => {
+    be: common_vendor.f($data.manageCategoryList, (item, index, i0) => {
       return common_vendor.e({
         a: index === 0 ? 1 : "",
         b: common_vendor.o(($event) => $options.moveManageCategory(index, -1), item.id),
@@ -1739,32 +1745,32 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       });
     })
   }, {
-    be: common_vendor.o((...args) => $options.openCustomCategoryForm && $options.openCustomCategoryForm(...args), "ca"),
-    bf: common_vendor.o((...args) => $options.closeCustomCategoryDrawer && $options.closeCustomCategoryDrawer(...args), "54"),
-    bg: common_vendor.o(() => {
-    }, "9b"),
-    bh: common_vendor.o((...args) => $options.closeCustomCategoryDrawer && $options.closeCustomCategoryDrawer(...args), "5a")
+    bf: common_vendor.o((...args) => $options.openCustomCategoryForm && $options.openCustomCategoryForm(...args), "0d"),
+    bg: common_vendor.o((...args) => $options.closeCustomCategoryDrawer && $options.closeCustomCategoryDrawer(...args), "33"),
+    bh: common_vendor.o(() => {
+    }, "5d"),
+    bi: common_vendor.o((...args) => $options.closeCustomCategoryDrawer && $options.closeCustomCategoryDrawer(...args), "35")
   }) : {}, {
-    bi: $data.showCustomCategoryForm
+    bj: $data.showCustomCategoryForm
   }, $data.showCustomCategoryForm ? {
-    bj: common_vendor.o((...args) => $options.closeCustomCategoryForm && $options.closeCustomCategoryForm(...args), "ed"),
-    bk: $data.customCategoryForm.name,
-    bl: common_vendor.o(($event) => $data.customCategoryForm.name = $event.detail.value, "bb"),
-    bm: $data.customCategoryForm.icon,
-    bn: common_vendor.o(($event) => $data.customCategoryForm.icon = $event.detail.value, "38"),
-    bo: $data.customCategoryForm.color,
-    bp: common_vendor.o(($event) => $data.customCategoryForm.color = $event.detail.value, "b6"),
-    bq: common_vendor.o((...args) => $options.closeCustomCategoryForm && $options.closeCustomCategoryForm(...args), "c6"),
-    br: common_vendor.o((...args) => $options.submitCustomCategoryForm && $options.submitCustomCategoryForm(...args), "36"),
-    bs: $data.customCategorySaving,
-    bt: common_vendor.o(() => {
-    }, "da"),
-    bv: common_vendor.o((...args) => $options.closeCustomCategoryForm && $options.closeCustomCategoryForm(...args), "12")
+    bk: common_vendor.o((...args) => $options.closeCustomCategoryForm && $options.closeCustomCategoryForm(...args), "85"),
+    bl: $data.customCategoryForm.name,
+    bm: common_vendor.o(($event) => $data.customCategoryForm.name = $event.detail.value, "f8"),
+    bn: $data.customCategoryForm.icon,
+    bo: common_vendor.o(($event) => $data.customCategoryForm.icon = $event.detail.value, "32"),
+    bp: $data.customCategoryForm.color,
+    bq: common_vendor.o(($event) => $data.customCategoryForm.color = $event.detail.value, "14"),
+    br: common_vendor.o((...args) => $options.closeCustomCategoryForm && $options.closeCustomCategoryForm(...args), "e4"),
+    bs: common_vendor.o((...args) => $options.submitCustomCategoryForm && $options.submitCustomCategoryForm(...args), "90"),
+    bt: $data.customCategorySaving,
+    bv: common_vendor.o(() => {
+    }, "73"),
+    bw: common_vendor.o((...args) => $options.closeCustomCategoryForm && $options.closeCustomCategoryForm(...args), "7b")
   } : {}, {
-    bw: $data.showBookPicker
+    bx: $data.showBookPicker
   }, $data.showBookPicker ? {
-    bx: common_vendor.o(($event) => $data.showBookPicker = false, "77"),
-    by: common_vendor.f($data.bookPickerOptions, (book, k0, i0) => {
+    by: common_vendor.o(($event) => $data.showBookPicker = false, "c9"),
+    bz: common_vendor.f($data.bookPickerOptions, (book, k0, i0) => {
       return {
         a: common_vendor.t(book.name),
         b: common_vendor.t(book.type === 1 ? "一起记" : "个人"),
@@ -1773,42 +1779,42 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         e: common_vendor.o(($event) => $options.selectBookFromPicker(book), `${book.type}-${book.id}`)
       };
     }),
-    bz: common_vendor.o(() => {
-    }, "67"),
-    bA: common_vendor.o(($event) => $data.showBookPicker = false, "bb")
+    bA: common_vendor.o(() => {
+    }, "75"),
+    bB: common_vendor.o(($event) => $data.showBookPicker = false, "4b")
   } : {}, {
-    bB: $data.showPaymentDialog
-  }, $data.showPaymentDialog ? {
-    bC: common_vendor.f($data.paymentMethods, (method, k0, i0) => {
+    bC: $data.showChannelDialog
+  }, $data.showChannelDialog ? {
+    bD: common_vendor.f($data.spendingChannels, (channel, k0, i0) => {
       return {
         a: "5dbf22a8-17-" + i0,
         b: common_vendor.p({
-          icon: method.icon,
-          ["category-name"]: method.name,
+          icon: channel.icon,
+          ["category-name"]: channel.name,
           size: 22,
-          color: $data.tempPaymentMethod === method.value ? "#333333" : method.color
+          color: $data.tempSpendingChannel === channel.value ? "#333333" : channel.color
         }),
-        c: common_vendor.t(method.name),
-        d: method.value,
-        e: $data.tempPaymentMethod === method.value ? 1 : "",
-        f: common_vendor.o(($event) => $data.tempPaymentMethod = method.value, method.value)
+        c: common_vendor.t(channel.name),
+        d: channel.value,
+        e: $data.tempSpendingChannel === channel.value ? 1 : "",
+        f: common_vendor.o(($event) => $data.tempSpendingChannel = channel.value, channel.value)
       };
     }),
-    bD: common_vendor.o((...args) => $options.confirmPaymentMethod && $options.confirmPaymentMethod(...args), "cd"),
-    bE: common_vendor.o(() => {
-    }, "e9"),
-    bF: common_vendor.o((...args) => $options.closePaymentDialog && $options.closePaymentDialog(...args), "97")
+    bE: common_vendor.o((...args) => $options.confirmSpendingChannel && $options.confirmSpendingChannel(...args), "fe"),
+    bF: common_vendor.o(() => {
+    }, "ab"),
+    bG: common_vendor.o((...args) => $options.closeChannelDialog && $options.closeChannelDialog(...args), "7d")
   } : {}, {
-    bG: $data.showRemarkDialog
+    bH: $data.showRemarkDialog
   }, $data.showRemarkDialog ? {
-    bH: common_vendor.o((...args) => $options.closeRemarkDialog && $options.closeRemarkDialog(...args), "9f"),
-    bI: $data.tempRemark,
-    bJ: common_vendor.o(($event) => $data.tempRemark = $event.detail.value, "0d"),
-    bK: common_vendor.o((...args) => $options.closeRemarkDialog && $options.closeRemarkDialog(...args), "e6"),
-    bL: common_vendor.o((...args) => $options.confirmRemark && $options.confirmRemark(...args), "96"),
-    bM: common_vendor.o(() => {
-    }, "2a"),
-    bN: common_vendor.o((...args) => $options.closeRemarkDialog && $options.closeRemarkDialog(...args), "7d")
+    bI: common_vendor.o((...args) => $options.closeRemarkDialog && $options.closeRemarkDialog(...args), "78"),
+    bJ: $data.tempRemark,
+    bK: common_vendor.o(($event) => $data.tempRemark = $event.detail.value, "8d"),
+    bL: common_vendor.o((...args) => $options.closeRemarkDialog && $options.closeRemarkDialog(...args), "85"),
+    bM: common_vendor.o((...args) => $options.confirmRemark && $options.confirmRemark(...args), "bd"),
+    bN: common_vendor.o(() => {
+    }, "9b"),
+    bO: common_vendor.o((...args) => $options.closeRemarkDialog && $options.closeRemarkDialog(...args), "ef")
   } : {});
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render], ["__scopeId", "data-v-5dbf22a8"]]);

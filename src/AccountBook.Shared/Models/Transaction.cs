@@ -40,7 +40,12 @@ public class Transaction
     /// <summary>
     /// 支付方式
     /// </summary>
-    public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Cash;
+    public PaymentMethod PaymentMethod { get; set; } = PaymentMethod.Other;
+
+    /// <summary>
+    /// 消费渠道（淘宝、京东等，0 表示未指定）
+    /// </summary>
+    public int SpendingChannel { get; set; }
     
     /// <summary>
     /// 币种

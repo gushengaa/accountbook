@@ -48,8 +48,10 @@ const _sfc_main = {
       // 一起账本交易总数
       periodSummary: null,
       // 昨日 / 今日 / 本周支出统计
-      showStatsAmount: true
+      showStatsAmount: true,
       // 是否显示统计金额
+      personalBudgetOverview: null
+      // 个人预算概览（含一起记）
     };
   },
   computed: {
@@ -65,12 +67,21 @@ const _sfc_main = {
       return this.sharedMonthIncome - this.sharedMonthExpense;
     },
     budgetRemainingPersonal() {
-      var _a;
-      const budget = (_a = this.currentPersonalBook) == null ? void 0 : _a.budget;
+      var _a, _b;
+      if (((_a = this.personalBudgetOverview) == null ? void 0 : _a.budgetRemaining) != null) {
+        return Number(this.personalBudgetOverview.budgetRemaining);
+      }
+      const budget = (_b = this.currentPersonalBook) == null ? void 0 : _b.budget;
       if (budget == null || budget <= 0)
         return null;
       const expenseYuan = (this.monthExpense || 0) / 100;
       return Number((budget - expenseYuan).toFixed(2));
+    },
+    personalSharedExpenseYuan() {
+      var _a;
+      if (this.accountBookTab !== "personal")
+        return 0;
+      return Number(((_a = this.personalBudgetOverview) == null ? void 0 : _a.sharedPersonalExpense) || 0);
     },
     budgetRemainingShared() {
       var _a;
@@ -122,7 +133,20 @@ const _sfc_main = {
     },
     // 当前选项卡的预算剩余（元）
     currentBudgetRemaining() {
-      return this.accountBookTab === "personal" ? this.budgetRemainingPersonal : this.budgetRemainingShared;
+      if (this.accountBookTab === "personal" || this.accountBookTab === "all") {
+        return this.budgetRemainingPersonal;
+      }
+      return this.budgetRemainingShared;
+    },
+    showBudgetRemaining() {
+      if (this.currentBudgetRemaining == null)
+        return false;
+      if (this.accountBookTab === "all" || this.accountBookTab === "personal")
+        return true;
+      return !!this.currentBook;
+    },
+    budgetRemainingLabel() {
+      return this.accountBookTab === "all" ? "个人预算剩余" : "预算剩余";
     },
     showPeriodSummary() {
       if (this.isGuestMode || !this.$store.state.token)
@@ -232,7 +256,7 @@ const _sfc_main = {
           this.periodSummary = summary;
         }
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/index/index.vue:490", "加载周期统计失败", error);
+        common_vendor.index.__f__("error", "at pages/index/index.vue:511", "加载周期统计失败", error);
         if (((_b = this.currentBook) == null ? void 0 : _b.id) === bookId) {
           this.periodSummary = {
             yesterday: { expenseAmount: 0, incomeAmount: 0, transactionCount: 0 },
@@ -252,6 +276,7 @@ const _sfc_main = {
         this.allMonthExpense = 0;
         this.allMonthIncome = 0;
         this.periodSummary = null;
+        this.personalBudgetOverview = null;
         return;
       }
       await this.loadAccountBooks();
@@ -273,7 +298,7 @@ const _sfc_main = {
           await this.loadPersonalBookData();
         }
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/index/index.vue:534", "加载数据失败", error);
+        common_vendor.index.__f__("error", "at pages/index/index.vue:556", "加载数据失败", error);
         common_vendor.index.showToast({ title: "加载失败", icon: "none" });
       } finally {
         this.loading = false;
@@ -288,10 +313,12 @@ const _sfc_main = {
         this.allMonthExpense = Math.round(Number(overview.totalExpense || 0) * 100);
         this.allMonthIncome = Math.round(Number(overview.totalIncome || 0) * 100);
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/index/index.vue:551", "加载全账本统计失败", error);
+        common_vendor.index.__f__("error", "at pages/index/index.vue:573", "加载全账本统计失败", error);
         this.allMonthExpense = 0;
         this.allMonthIncome = 0;
       }
+      const defaultPersonal = this.pickerPersonalAccountBooks.find((b) => b.isDefault) || this.pickerPersonalAccountBooks[0];
+      await this.fetchPersonalBudgetOverview(defaultPersonal == null ? void 0 : defaultPersonal.id);
       const activePersonal = this.pickerPersonalAccountBooks;
       const activeShared = this.pickerSharedAccountBooks;
       const allBooks = [
@@ -313,7 +340,7 @@ const _sfc_main = {
             accountBookType: t.accountBookType ?? book.type
           }));
         } catch (e) {
-          common_vendor.index.__f__("warn", "at pages/index/index.vue:579", "加载账本交易失败", book.id, e);
+          common_vendor.index.__f__("warn", "at pages/index/index.vue:605", "加载账本交易失败", book.id, e);
           return [];
         }
       }));
@@ -342,8 +369,26 @@ const _sfc_main = {
           thisWeek: { expenseAmount: sumExpense("thisWeek"), incomeAmount: 0, transactionCount: 0 }
         };
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/index/index.vue:612", "加载全账本周期统计失败", error);
+        common_vendor.index.__f__("error", "at pages/index/index.vue:638", "加载全账本周期统计失败", error);
         this.periodSummary = null;
+      }
+    },
+    async fetchPersonalBudgetOverview(personalAccountBookId) {
+      const now = /* @__PURE__ */ new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      try {
+        const budgetOverview = await utils_api.api.transactions.getPersonalBudgetOverview(
+          year,
+          month,
+          personalAccountBookId ?? void 0
+        );
+        this.personalBudgetOverview = budgetOverview;
+        return budgetOverview;
+      } catch (error) {
+        common_vendor.index.__f__("error", "at pages/index/index.vue:656", "加载个人预算概览失败", error);
+        this.personalBudgetOverview = null;
+        return null;
       }
     },
     async loadPersonalBookData() {
@@ -355,19 +400,26 @@ const _sfc_main = {
         this.monthExpense = 0;
         this.monthIncome = 0;
         this.periodSummary = null;
+        this.personalBudgetOverview = null;
         return;
       }
       if (((_a = this.currentAccountBook) == null ? void 0 : _a.id) !== book.id) {
         this.setCurrentAccountBook(book);
       }
-      const dateRange = utils_util.getDateRange("month");
-      const transactions = await utils_api.api.transactions.getByDateRange(
-        book.id,
-        dateRange.startDate,
-        dateRange.endDate
-      );
-      this.monthExpense = utils_util.calculateTotal(transactions, 0) * 100;
-      this.monthIncome = utils_util.calculateTotal(transactions, 1) * 100;
+      const budgetOverview = await this.fetchPersonalBudgetOverview(book.id);
+      if (budgetOverview) {
+        this.monthExpense = Math.round(Number(budgetOverview.totalPersonalExpense || 0) * 100);
+        this.monthIncome = Math.round(Number(budgetOverview.totalPersonalIncome || 0) * 100);
+      } else {
+        const dateRange = utils_util.getDateRange("month");
+        const transactions = await utils_api.api.transactions.getByDateRange(
+          book.id,
+          dateRange.startDate,
+          dateRange.endDate
+        );
+        this.monthExpense = utils_util.calculateTotal(transactions, 0) * 100;
+        this.monthIncome = utils_util.calculateTotal(transactions, 1) * 100;
+      }
       const allTransactions = await utils_api.api.transactions.getByAccountBook(book.id);
       this.allTransactionsCount = allTransactions.length;
       this.recentTransactions = allTransactions.slice(0, 8);
@@ -386,7 +438,7 @@ const _sfc_main = {
         try {
           sharedBooks = await utils_api.api.sharedAccountBooks.getList();
         } catch (error) {
-          common_vendor.index.__f__("error", "at pages/index/index.vue:666", "加载一起账本失败", error);
+          common_vendor.index.__f__("error", "at pages/index/index.vue:717", "加载一起账本失败", error);
         }
         this.allAccountBooks = [...personalBooks, ...sharedBooks];
         this.personalAccountBooks = personalBooks;
@@ -401,7 +453,7 @@ const _sfc_main = {
           this.applyDefaultSharedBook(sharedBooks);
         }
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/index/index.vue:687", "加载账本失败", error);
+        common_vendor.index.__f__("error", "at pages/index/index.vue:738", "加载账本失败", error);
       }
     },
     // 切换账本类型选项卡
@@ -443,7 +495,7 @@ const _sfc_main = {
               this.sharedAccountBooks[idx] = full;
           }
         } catch (e) {
-          common_vendor.index.__f__("warn", "at pages/index/index.vue:732", "拉取一起账本详情失败", e);
+          common_vendor.index.__f__("warn", "at pages/index/index.vue:783", "拉取一起账本详情失败", e);
         }
       }
       try {
@@ -469,7 +521,7 @@ const _sfc_main = {
         this.sharedRecentTransactions = allTransactions.slice(0, 8);
         await this.loadPeriodSummary(book.id);
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/index/index.vue:771", "加载一起账本数据失败", error);
+        common_vendor.index.__f__("error", "at pages/index/index.vue:822", "加载一起账本数据失败", error);
         this.sharedMonthExpense = 0;
         this.sharedMonthIncome = 0;
         this.sharedRecentTransactions = [];
@@ -681,46 +733,51 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       size: 18,
       color: "#2b2b2b"
     }),
-    w: common_vendor.o((...args) => $options.toggleStatsAmountVisibility && $options.toggleStatsAmountVisibility(...args), "06"),
+    w: common_vendor.o((...args) => $options.toggleStatsAmountVisibility && $options.toggleStatsAmountVisibility(...args), "2d"),
     x: common_vendor.t($data.showStatsAmount ? `￥${$options.formatAmount($options.currentMonthExpense)}` : "￥****"),
     y: $options.showStatsIncomeRow
   }, $options.showStatsIncomeRow ? {
     z: common_vendor.t($data.showStatsAmount ? `￥${$options.formatAmount($options.currentMonthIncome)}` : "￥****")
   } : {}, {
-    A: $options.currentBook && $options.currentBudgetRemaining != null
-  }, $options.currentBook && $options.currentBudgetRemaining != null ? {
-    B: common_vendor.t($data.showStatsAmount ? `￥${($options.currentBudgetRemaining ?? 0).toFixed(2)}` : "￥****")
-  } : {}), {
-    C: _ctx.isGuestMode
-  }, _ctx.isGuestMode ? {
-    D: common_vendor.o((...args) => $options.goToLogin && $options.goToLogin(...args), "b7")
+    A: $data.accountBookTab === "personal" && $options.personalSharedExpenseYuan > 0
+  }, $data.accountBookTab === "personal" && $options.personalSharedExpenseYuan > 0 ? {
+    B: common_vendor.t($data.showStatsAmount ? `￥${$options.personalSharedExpenseYuan.toFixed(2)}` : "￥****")
   } : {}, {
-    E: $options.showPeriodSummary
+    C: $options.showBudgetRemaining
+  }, $options.showBudgetRemaining ? {
+    D: common_vendor.t($options.budgetRemainingLabel),
+    E: common_vendor.t($data.showStatsAmount ? `￥${($options.currentBudgetRemaining ?? 0).toFixed(2)}` : "￥****")
+  } : {}), {
+    F: _ctx.isGuestMode
+  }, _ctx.isGuestMode ? {
+    G: common_vendor.o((...args) => $options.goToLogin && $options.goToLogin(...args), "0c")
+  } : {}, {
+    H: $options.showPeriodSummary
   }, $options.showPeriodSummary ? {
-    F: common_vendor.p({
+    I: common_vendor.p({
       name: "bars",
       size: 16,
       color: "#F5A623"
     }),
-    G: common_vendor.f($options.periodSummaryItems, (item, k0, i0) => {
+    J: common_vendor.f($options.periodSummaryItems, (item, k0, i0) => {
       return {
         a: common_vendor.t(item.expenseAmount.toFixed(2)),
         b: common_vendor.t(item.label),
         c: item.key
       };
     }),
-    H: common_vendor.o((...args) => $options.goToStatistics && $options.goToStatistics(...args), "ed")
+    K: common_vendor.o((...args) => $options.goToStatistics && $options.goToStatistics(...args), "3c")
   } : {}, {
-    I: common_vendor.p({
+    L: common_vendor.p({
       name: "list",
       size: 16,
       color: "#F5A623"
     }),
-    J: common_vendor.t(">"),
-    K: common_vendor.o((...args) => $options.viewAllTransactions && $options.viewAllTransactions(...args), "c8"),
-    L: $options.displayTransactions.length === 0
+    M: common_vendor.t(">"),
+    N: common_vendor.o((...args) => $options.viewAllTransactions && $options.viewAllTransactions(...args), "d6"),
+    O: $options.displayTransactions.length === 0
   }, $options.displayTransactions.length === 0 ? {} : {
-    M: common_vendor.f($options.displayTransactions, (item, k0, i0) => {
+    P: common_vendor.f($options.displayTransactions, (item, k0, i0) => {
       return common_vendor.e({
         a: "1cf27b2a-5-" + i0,
         b: common_vendor.p({
@@ -762,21 +819,21 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       });
     })
   }, {
-    N: !$options.showPeriodSummary ? 1 : "",
-    O: common_vendor.o($options.closeTransactionDetail, "4f"),
-    P: common_vendor.p({
+    Q: !$options.showPeriodSummary ? 1 : "",
+    R: common_vendor.o($options.closeTransactionDetail, "a5"),
+    S: common_vendor.p({
       visible: $data.showTransactionDetail,
       transaction: $data.selectedTransaction
     }),
-    Q: common_vendor.p({
+    T: common_vendor.p({
       current: 0
     }),
-    R: $data.showAccountBookPicker
+    U: $data.showAccountBookPicker
   }, $data.showAccountBookPicker ? common_vendor.e({
-    S: common_vendor.o(($event) => $data.showAccountBookPicker = false, "d3"),
-    T: $options.pickerPersonalAccountBooks.length > 0
+    V: common_vendor.o(($event) => $data.showAccountBookPicker = false, "ca"),
+    W: $options.pickerPersonalAccountBooks.length > 0
   }, $options.pickerPersonalAccountBooks.length > 0 ? {
-    U: common_vendor.f($options.pickerPersonalAccountBooks, (book, k0, i0) => {
+    X: common_vendor.f($options.pickerPersonalAccountBooks, (book, k0, i0) => {
       var _a2, _b, _c, _d, _e, _f;
       return common_vendor.e({
         a: common_vendor.t(book.name),
@@ -796,18 +853,18 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       });
     })
   } : {}, {
-    V: $options.pickerPersonalAccountBooks.length === 0
+    Y: $options.pickerPersonalAccountBooks.length === 0
   }, $options.pickerPersonalAccountBooks.length === 0 ? {} : {}, {
-    W: common_vendor.o(() => {
+    Z: common_vendor.o(() => {
     }, "b9"),
-    X: common_vendor.o(($event) => $data.showAccountBookPicker = false, "d6")
+    aa: common_vendor.o(($event) => $data.showAccountBookPicker = false, "b9")
   }) : {}, {
-    Y: $data.showSharedBookPicker
+    ab: $data.showSharedBookPicker
   }, $data.showSharedBookPicker ? common_vendor.e({
-    Z: common_vendor.o(($event) => $data.showSharedBookPicker = false, "5a"),
-    aa: $options.pickerSharedAccountBooks.length > 0
+    ac: common_vendor.o(($event) => $data.showSharedBookPicker = false, "16"),
+    ad: $options.pickerSharedAccountBooks.length > 0
   }, $options.pickerSharedAccountBooks.length > 0 ? {
-    ab: common_vendor.f($options.pickerSharedAccountBooks, (book, k0, i0) => {
+    ae: common_vendor.f($options.pickerSharedAccountBooks, (book, k0, i0) => {
       var _a2, _b, _c;
       return common_vendor.e({
         a: common_vendor.t(book.name),
@@ -824,9 +881,9 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       });
     })
   } : {}, {
-    ac: common_vendor.o(() => {
-    }, "78"),
-    ad: common_vendor.o(($event) => $data.showSharedBookPicker = false, "79")
+    af: common_vendor.o(() => {
+    }, "f4"),
+    ag: common_vendor.o(($event) => $data.showSharedBookPicker = false, "6f")
   }) : {});
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render], ["__scopeId", "data-v-1cf27b2a"]]);
