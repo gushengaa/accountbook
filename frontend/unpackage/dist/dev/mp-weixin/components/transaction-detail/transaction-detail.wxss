@@ -110,6 +110,10 @@
   font-size: 28rpx;
   color: #333333;
 }
+.transaction-detail-modal .detail-content .detail-body .detail-item .detail-value .detail-channel-name.data-v-39dda92e {
+  color: #2064f5a8;
+  font-weight: 600;
+}
 .transaction-detail-modal .detail-content .detail-body .detail-item .detail-value.category-value.data-v-39dda92e {
   display: flex;
   align-items: center;

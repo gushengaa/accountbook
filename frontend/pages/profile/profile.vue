@@ -110,6 +110,7 @@ export default {
   onShow() {
     hideNativeTabBar();
     this.checkAdmin();
+    this.refreshUserInfo();
   },
   // 微信分享功能
   onShareAppMessage() {
@@ -198,6 +199,24 @@ export default {
       } catch (error) {
         console.error('检查管理员权限失败:', error);
         this.isAdmin = false;
+      }
+    },
+
+    async refreshUserInfo() {
+      if (this.isGuestMode || !this.$store.state.token) {
+        return;
+      }
+      try {
+        const user = await api.auth.getUserInfo();
+        if (!user) return;
+        this.$store.commit('SET_USER_INFO', {
+          id: user.id,
+          nickName: user.nickName,
+          avatarUrl: user.avatarUrl,
+          phoneNumber: user.phoneNumber
+        });
+      } catch (error) {
+        console.error('刷新用户信息失败:', error);
       }
     },
     

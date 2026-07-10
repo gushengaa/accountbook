@@ -1,7 +1,7 @@
 <template>
   <view class="login-container">
     <view class="login-header">
-      <image class="logo" src="/static/logo.jpg" mode="aspectFit"></image>
+      <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
       <text class="title">乌鸦爱记账</text>
       <text class="subtitle">记录生活的每一笔</text>
     </view>

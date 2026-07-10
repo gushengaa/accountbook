@@ -167,7 +167,7 @@
               <text class="category-name">{{ item.categoryName }}</text>
               <text v-if="item.remark" class="transaction-remark">{{ item.remark }}</text>
               <view class="transaction-meta">
-                <text class="transaction-date">{{ formatDate(item.transactionDate, 'MM-DD') }}</text>
+                <text class="transaction-date">{{ formatDate(item.transactionDate, 'list-date') }}</text>
                 <text
                   v-if="accountBookTab === 'all' && item.accountBookName"
                   class="transaction-book-tag"
@@ -409,8 +409,8 @@ export default {
       const today = s.today || {};
       const thisWeek = s.thisWeek || {};
       return [
-        { key: 'yesterday', label: '昨日', expenseAmount: Number(yesterday.expenseAmount) || 0 },
-        { key: 'today', label: '今日', expenseAmount: Number(today.expenseAmount) || 0 },
+        { key: 'yesterday', label: '昨天', expenseAmount: Number(yesterday.expenseAmount) || 0 },
+        { key: 'today', label: '今天', expenseAmount: Number(today.expenseAmount) || 0 },
         { key: 'week', label: '本周', expenseAmount: Number(thisWeek.expenseAmount) || 0 }
       ];
     },

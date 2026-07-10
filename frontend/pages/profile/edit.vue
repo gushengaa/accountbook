@@ -42,6 +42,7 @@
 
 <script>
 import { api } from '@/utils/api';
+import { isLocalTempFile } from '@/utils/util';
 import { mapState, mapActions } from 'vuex';
 
 export default {
@@ -54,6 +55,7 @@ export default {
 			editUserInfo: {
 				nickname: '',
 				avatar: '',
+				avatarStorageUrl: '',
 				signature: ''
 			}
 		}
@@ -67,11 +69,32 @@ export default {
 	},
 	
 	onShow() {
-		console.log('编辑资料页面显示，重新加载数据')
-		this.loadUserInfo()
+		this.refreshUserInfo()
 	},
 	
 	methods: {
+		async refreshUserInfo() {
+			if (!this.$store.state.token) {
+				this.loadUserInfo()
+				return
+			}
+			try {
+				const user = await api.auth.getUserInfo()
+				if (user) {
+					this.$store.commit('SET_USER_INFO', {
+						id: user.id,
+						nickName: user.nickName,
+						avatarUrl: user.avatarUrl,
+						phoneNumber: user.phoneNumber
+					})
+				}
+			} catch (error) {
+				console.error('刷新用户信息失败:', error)
+			} finally {
+				this.loadUserInfo()
+			}
+		},
+
 		// 检查头像隐私授权
 		checkAvatarPrivacy() {
 			console.log('检查头像隐私授权状态')
@@ -114,39 +137,50 @@ export default {
 				this.editUserInfo = {
 					nickname: this.userInfo.nickName || '',
 					avatar: this.userInfo.avatarUrl || '/static/default-avatar.png',
+					avatarStorageUrl: '',
 					signature: ''
 				}
 			} else {
 				this.editUserInfo = {
 					nickname: '',
 					avatar: '/static/default-avatar.png',
+					avatarStorageUrl: '',
 					signature: ''
 				}
 			}
 		},
 
 		// 选择头像
-		onChooseAvatar(e) {
+		async onChooseAvatar(e) {
 			console.log('头像选择事件触发:', e)
 			
 			if (e && e.detail && e.detail.avatarUrl) {
 				const tempFilePath = e.detail.avatarUrl
 				console.log('获取到头像路径:', tempFilePath)
 				
-				// 直接使用用户选择的头像
 				this.editUserInfo.avatar = tempFilePath
-				
 
-			
-				// uni.showToast({
-				// 	title: '头像已选择',
-				// 	icon: 'success'
-				// })
-								
-				
+				if (isLocalTempFile(tempFilePath)) {
+					try {
+						uni.showLoading({ title: '上传中...' })
+						const uploaded = await this.uploadAvatarFile(tempFilePath)
+						this.editUserInfo.avatar = uploaded.displayUrl
+						this.editUserInfo.avatarStorageUrl = uploaded.storageUrl
+					} catch (uploadError) {
+						console.error('头像上传失败:', uploadError)
+						if (uploadError.message && uploadError.message.includes('登录已过期')) {
+							return
+						}
+						uni.showToast({
+							title: uploadError.message || '头像上传失败',
+							icon: 'none'
+						})
+					} finally {
+						uni.hideLoading()
+					}
+				}
 			} else {
 				console.log('头像选择事件数据异常:', e)
-				// 不显示错误提示，用户可能取消了选择
 			}
 		},
 
@@ -235,13 +269,16 @@ export default {
 				})
 				
 				// 检查头像是否是临时文件路径
-				const avatarUrl = this.editUserInfo.avatar
+				const avatarUrl = this.editUserInfo.avatarStorageUrl || this.editUserInfo.avatar
 				let finalAvatarUrl = avatarUrl
 				
-				// 如果是临时文件路径，需要先上传				
-				if (avatarUrl && (avatarUrl.indexOf('//tmp') > 0 || avatarUrl.indexOf('http://tmp') >= 0)) {
+				// 临时文件需先上传到 OSS
+				if (avatarUrl && isLocalTempFile(avatarUrl)) {
 					try {
-						finalAvatarUrl = await this.uploadAvatarFile(avatarUrl)
+						const uploaded = await this.uploadAvatarFile(avatarUrl)
+						finalAvatarUrl = uploaded.storageUrl
+						this.editUserInfo.avatar = uploaded.displayUrl
+						this.editUserInfo.avatarStorageUrl = uploaded.storageUrl
 					} catch (uploadError) {
 						console.error('头像上传失败:', uploadError)
 						// 检查是否是登录过期错误
@@ -313,7 +350,10 @@ export default {
 		async uploadAvatarFile(filePath) {
 			try {
 				const result = await api.images.upload(filePath, { contentCheck: true })
-				return result.imageUrl
+				return {
+					storageUrl: result.imageUrl,
+					displayUrl: result.displayUrl || result.imageUrl
+				}
 			} catch (error) {
 				console.error('头像上传失败:', error)
 				throw error

@@ -162,8 +162,8 @@ const _sfc_main = {
       const today = s.today || {};
       const thisWeek = s.thisWeek || {};
       return [
-        { key: "yesterday", label: "昨日", expenseAmount: Number(yesterday.expenseAmount) || 0 },
-        { key: "today", label: "今日", expenseAmount: Number(today.expenseAmount) || 0 },
+        { key: "yesterday", label: "昨天", expenseAmount: Number(yesterday.expenseAmount) || 0 },
+        { key: "today", label: "今天", expenseAmount: Number(today.expenseAmount) || 0 },
         { key: "week", label: "本周", expenseAmount: Number(thisWeek.expenseAmount) || 0 }
       ];
     },
@@ -792,7 +792,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       }, item.remark ? {
         f: common_vendor.t(item.remark)
       } : {}, {
-        g: common_vendor.t($options.formatDate(item.transactionDate, "MM-DD")),
+        g: common_vendor.t($options.formatDate(item.transactionDate, "list-date")),
         h: $data.accountBookTab === "all" && item.accountBookName
       }, $data.accountBookTab === "all" && item.accountBookName ? {
         i: common_vendor.t(item.accountBookType === 1 ? "一起记" : "个人"),
@@ -820,7 +820,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     })
   }, {
     Q: !$options.showPeriodSummary ? 1 : "",
-    R: common_vendor.o($options.closeTransactionDetail, "a5"),
+    R: common_vendor.o($options.closeTransactionDetail, "cd"),
     S: common_vendor.p({
       visible: $data.showTransactionDetail,
       transaction: $data.selectedTransaction
@@ -830,7 +830,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     }),
     U: $data.showAccountBookPicker
   }, $data.showAccountBookPicker ? common_vendor.e({
-    V: common_vendor.o(($event) => $data.showAccountBookPicker = false, "ca"),
+    V: common_vendor.o(($event) => $data.showAccountBookPicker = false, "ed"),
     W: $options.pickerPersonalAccountBooks.length > 0
   }, $options.pickerPersonalAccountBooks.length > 0 ? {
     X: common_vendor.f($options.pickerPersonalAccountBooks, (book, k0, i0) => {
@@ -856,12 +856,12 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     Y: $options.pickerPersonalAccountBooks.length === 0
   }, $options.pickerPersonalAccountBooks.length === 0 ? {} : {}, {
     Z: common_vendor.o(() => {
-    }, "b9"),
-    aa: common_vendor.o(($event) => $data.showAccountBookPicker = false, "b9")
+    }, "d0"),
+    aa: common_vendor.o(($event) => $data.showAccountBookPicker = false, "16")
   }) : {}, {
     ab: $data.showSharedBookPicker
   }, $data.showSharedBookPicker ? common_vendor.e({
-    ac: common_vendor.o(($event) => $data.showSharedBookPicker = false, "16"),
+    ac: common_vendor.o(($event) => $data.showSharedBookPicker = false, "d3"),
     ad: $options.pickerSharedAccountBooks.length > 0
   }, $options.pickerSharedAccountBooks.length > 0 ? {
     ae: common_vendor.f($options.pickerSharedAccountBooks, (book, k0, i0) => {
@@ -882,8 +882,8 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
     })
   } : {}, {
     af: common_vendor.o(() => {
-    }, "f4"),
-    ag: common_vendor.o(($event) => $data.showSharedBookPicker = false, "6f")
+    }, "1a"),
+    ag: common_vendor.o(($event) => $data.showSharedBookPicker = false, "24")
   }) : {});
 }
 const MiniProgramPage = /* @__PURE__ */ common_vendor._export_sfc(_sfc_main, [["render", _sfc_render], ["__scopeId", "data-v-1cf27b2a"]]);

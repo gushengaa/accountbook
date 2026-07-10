@@ -575,7 +575,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       }, transaction.remark ? {
         f: common_vendor.t(transaction.remark)
       } : {}, {
-        g: common_vendor.t($options.formatDate(transaction.transactionDate, "MM-DD")),
+        g: common_vendor.t($options.formatDate(transaction.transactionDate, "list-date")),
         h: transaction.userName
       }, transaction.userName ? {
         i: common_vendor.t(transaction.userName)

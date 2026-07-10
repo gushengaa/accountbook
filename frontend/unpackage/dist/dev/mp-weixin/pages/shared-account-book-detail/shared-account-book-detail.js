@@ -722,7 +722,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       }, item.remark ? {
         f: common_vendor.t(item.remark)
       } : {}, {
-        g: common_vendor.t($options.formatDate(item.transactionDate, "MM-DD")),
+        g: common_vendor.t($options.formatDate(item.transactionDate, "list-date")),
         h: $data.accountBookType === 1 && item.userName
       }, $data.accountBookType === 1 && item.userName ? {
         i: common_vendor.t(item.userName)
@@ -745,7 +745,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       });
     })
   }, {
-    ay: common_vendor.o($options.closeTransactionDetail, "7c"),
+    ay: common_vendor.o($options.closeTransactionDetail, "e9"),
     az: common_vendor.p({
       visible: $data.showTransactionDetail,
       transaction: $data.selectedTransaction

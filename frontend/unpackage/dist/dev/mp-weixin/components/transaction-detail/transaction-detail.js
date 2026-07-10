@@ -89,7 +89,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   } : {}, {
     v: $props.transaction.type === 0 && $props.transaction.spendingChannel > 0
   }, $props.transaction.type === 0 && $props.transaction.spendingChannel > 0 ? {
-    w: common_vendor.t($props.transaction.spendingChannelName || "未指定")
+    w: common_vendor.t($props.transaction.spendingChannelName)
   } : {}, {
     x: $props.transaction.images && $props.transaction.images.length > 0
   }, $props.transaction.images && $props.transaction.images.length > 0 ? {

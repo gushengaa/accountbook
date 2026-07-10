@@ -30,6 +30,10 @@ public class AuthController : ControllerBase
         try
         {
             var result = await _userService.WeChatLoginAsync(request);
+            if (result.UserInfo != null)
+            {
+                result.UserInfo.AvatarUrl = _ossService.GetAvailableImageUrl(result.UserInfo.AvatarUrl);
+            }
             return Ok(result);
         }
         catch (Exception ex)
@@ -47,7 +51,46 @@ public class AuthController : ControllerBase
         try
         {
             var result = await _userService.CreateGuestUserAsync();
+            if (result.UserInfo != null)
+            {
+                result.UserInfo.AvatarUrl = _ossService.GetAvailableImageUrl(result.UserInfo.AvatarUrl);
+            }
             return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// 获取当前用户信息（头像返回带签名的可访问 URL）
+    /// </summary>
+    [HttpGet("user-info")]
+    [Authorize]
+    public async Task<ActionResult> GetUserInfo()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId) || userId == 0)
+            {
+                return Unauthorized(new { message = "未授权" });
+            }
+
+            var user = await _userService.GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = "用户不存在" });
+            }
+
+            return Ok(new
+            {
+                Id = user.Id,
+                NickName = user.NickName,
+                AvatarUrl = _ossService.GetAvailableImageUrl(user.AvatarUrl),
+                PhoneNumber = user.PhoneNumber
+            });
         }
         catch (Exception ex)
         {
@@ -73,9 +116,14 @@ public class AuthController : ControllerBase
             var userInfo = new WeChatUserInfo
             {
                 NickName = request.NickName,
-                AvatarUrl = request.AvatarUrl,
+                AvatarUrl = _ossService.NormalizeStoredImageUrl(request.AvatarUrl),
                 PhoneNumber = request.PhoneNumber
             };
+
+            if (!string.IsNullOrEmpty(request.AvatarUrl) && string.IsNullOrEmpty(userInfo.AvatarUrl))
+            {
+                return BadRequest(new { message = "头像地址无效，请重新上传" });
+            }
 
             var user = await _userService.UpdateUserInfoAsync(userId, userInfo);
 

@@ -315,7 +315,7 @@
                 <text class="category-name">{{ transaction.categoryName }}</text>
                 <text v-if="transaction.remark" class="transaction-remark">{{ transaction.remark }}</text>
                 <view class="transaction-meta">
-                  <text class="transaction-date">{{ formatDate(transaction.transactionDate, 'MM-DD') }}</text>
+                  <text class="transaction-date">{{ formatDate(transaction.transactionDate, 'list-date') }}</text>
                   <text v-if="transaction.userName" class="transaction-creator">{{ transaction.userName }}</text>
                 </view>
               </view>

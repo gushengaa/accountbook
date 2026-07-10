@@ -59,8 +59,12 @@
 
         <!-- 消费渠道（支出） -->
         <view v-if="transaction.type === 0 && transaction.spendingChannel > 0" class="detail-item">
-          <text class="detail-label">消费渠道</text>
-          <text class="detail-value">{{ transaction.spendingChannelName || '未指定' }}</text>
+          <text class="detail-label">在哪里买的</text>
+          <view class="detail-value">
+            <text>在</text>
+            <text class="detail-channel-name">{{ transaction.spendingChannelName }}</text>
+            <text>买的</text>
+          </view>
         </view>
         
         <!-- 图片 -->
@@ -246,6 +250,11 @@ export default {
         .detail-value {
           font-size: 28rpx;
           color: #333333;
+
+          .detail-channel-name {
+            color: #2064f5a8;
+            font-weight: 600;
+          }
           
           &.category-value {
             display: flex;

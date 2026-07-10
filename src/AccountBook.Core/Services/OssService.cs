@@ -133,29 +133,63 @@ public class OssService
     }
 
     /// <summary>
+    /// 规范化存入数据库的图片 URL（去掉签名参数，拒绝本地临时路径）
+    /// </summary>
+    public string? NormalizeStoredImageUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return url;
+        }
+
+        var trimmed = url.Trim();
+        if (trimmed.StartsWith("wxfile://", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.StartsWith("file://", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Contains("/tmp/", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.Contains("//tmp", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        if (Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+        {
+            return $"{uri.Scheme}://{uri.Authority}{uri.AbsolutePath}";
+        }
+
+        return trimmed;
+    }
+
+    /// <summary>
     /// 获取可访问的图片URL（带签名）
     /// </summary>
     /// <param name="url">原始URL</param>
     /// <returns>带签名的URL</returns>
-    public string GetAvailableImageUrl(string url)
+    public string? GetAvailableImageUrl(string? url)
     {
         if (_ossClient == null || string.IsNullOrEmpty(url))
         {
             return url;
         }
 
+        if (url.StartsWith("wxfile://", StringComparison.OrdinalIgnoreCase) ||
+            url.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
         try
         {
-            string objectKey = ExtractObjectKeyFromUrl(url, _bucketName);
+            var normalizedUrl = NormalizeStoredImageUrl(url) ?? url;
+            string objectKey = ExtractObjectKeyFromUrl(normalizedUrl, _bucketName);
             if (string.IsNullOrEmpty(objectKey))
             {
                 return url;
             }
 
-            // 生成1小时有效的访问URL
+            // 生成 24 小时有效的访问 URL
             var req = new GeneratePresignedUriRequest(_bucketName, objectKey, SignHttpMethod.Get)
             {
-                Expiration = DateTime.Now.AddHours(1)
+                Expiration = DateTime.Now.AddHours(24)
             };
             Uri signedUrl = _ossClient.GeneratePresignedUri(req);
             return signedUrl.ToString();
@@ -163,7 +197,7 @@ public class OssService
         catch (Exception ex)
         {
             _logger.LogError(ex, $"生成签名URL失败: {url}");
-            return url; // 返回原始URL作为降级方案
+            return url;
         }
     }
 }

@@ -22,6 +22,17 @@ export function amountToFen(yuan) {
  */
 export function formatDate(date, format = 'YYYY-MM-DD') {
   if (!date) return '';
+
+  if (format === 'list-date') {
+    const dateKey = formatDate(date, 'YYYY-MM-DD');
+    const today = formatDate(new Date(), 'YYYY-MM-DD');
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterday = formatDate(yesterdayDate, 'YYYY-MM-DD');
+    if (dateKey === today) return '今天';
+    if (dateKey === yesterday) return '昨天';
+    return formatDate(date, 'MM-DD');
+  }
   
   const d = new Date(date);
   const year = d.getFullYear();
@@ -95,6 +106,26 @@ export function debounce(func, wait) {
     clearTimeout(timeout);
     timeout = setTimeout(later, wait);
   };
+}
+
+/**
+ * 判断是否为微信/本地临时文件（需上传 OSS 后才能持久保存）
+ */
+export function isLocalTempFile(filePath) {
+  if (!filePath || typeof filePath !== 'string') return false;
+  if (filePath.startsWith('/static/')) return false;
+
+  const lower = filePath.toLowerCase();
+  if (/^https?:\/\//i.test(filePath)) {
+    return /^https?:\/\/(tmp|usr)/i.test(filePath);
+  }
+
+  return (
+    lower.startsWith('wxfile://') ||
+    lower.startsWith('file://') ||
+    lower.includes('//tmp') ||
+    lower.includes('/tmp/')
+  );
 }
 
 /**

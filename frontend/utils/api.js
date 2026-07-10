@@ -113,6 +113,13 @@ export const api = {
         method: 'PUT',
         data
       });
+    },
+    // 获取当前用户信息（含签名头像 URL）
+    getUserInfo() {
+      return request({
+        url: '/auth/user-info',
+        method: 'GET'
+      });
     }
   },
 

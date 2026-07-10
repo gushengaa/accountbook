@@ -1,6 +1,7 @@
 "use strict";
 const common_vendor = require("../../common/vendor.js");
 const utils_api = require("../../utils/api.js");
+const utils_util = require("../../utils/util.js");
 const _sfc_main = {
   computed: {
     ...common_vendor.mapState(["userInfo"])
@@ -21,40 +22,40 @@ const _sfc_main = {
     this.loadUserInfo();
   },
   onShow() {
-    common_vendor.index.__f__("log", "at pages/profile/edit.vue:70", "编辑资料页面显示，重新加载数据");
+    common_vendor.index.__f__("log", "at pages/profile/edit.vue:71", "编辑资料页面显示，重新加载数据");
     this.loadUserInfo();
   },
   methods: {
     // 检查头像隐私授权
     checkAvatarPrivacy() {
-      common_vendor.index.__f__("log", "at pages/profile/edit.vue:77", "检查头像隐私授权状态");
+      common_vendor.index.__f__("log", "at pages/profile/edit.vue:78", "检查头像隐私授权状态");
       setTimeout(() => {
         if (typeof common_vendor.wx$1 !== "undefined" && common_vendor.wx$1.getPrivacySetting) {
           common_vendor.wx$1.getPrivacySetting({
             success: (res) => {
-              common_vendor.index.__f__("log", "at pages/profile/edit.vue:84", "隐私设置检查结果:", res);
+              common_vendor.index.__f__("log", "at pages/profile/edit.vue:85", "隐私设置检查结果:", res);
               if (res.needAuthorization) {
-                common_vendor.index.__f__("log", "at pages/profile/edit.vue:86", "需要用户授权，主动唤起隐私确认弹窗");
+                common_vendor.index.__f__("log", "at pages/profile/edit.vue:87", "需要用户授权，主动唤起隐私确认弹窗");
                 if (common_vendor.wx$1.requirePrivacyAuthorize) {
                   common_vendor.wx$1.requirePrivacyAuthorize({
                     success: () => {
-                      common_vendor.index.__f__("log", "at pages/profile/edit.vue:90", "用户同意隐私授权");
+                      common_vendor.index.__f__("log", "at pages/profile/edit.vue:91", "用户同意隐私授权");
                     },
                     fail: (err) => {
-                      common_vendor.index.__f__("log", "at pages/profile/edit.vue:93", "用户拒绝隐私授权:", err);
+                      common_vendor.index.__f__("log", "at pages/profile/edit.vue:94", "用户拒绝隐私授权:", err);
                     }
                   });
                 }
               } else {
-                common_vendor.index.__f__("log", "at pages/profile/edit.vue:98", "用户已授权或无需授权");
+                common_vendor.index.__f__("log", "at pages/profile/edit.vue:99", "用户已授权或无需授权");
               }
             },
             fail: (err) => {
-              common_vendor.index.__f__("log", "at pages/profile/edit.vue:102", "获取隐私设置失败:", err);
+              common_vendor.index.__f__("log", "at pages/profile/edit.vue:103", "获取隐私设置失败:", err);
             }
           });
         } else {
-          common_vendor.index.__f__("log", "at pages/profile/edit.vue:106", "当前环境不支持隐私设置API");
+          common_vendor.index.__f__("log", "at pages/profile/edit.vue:107", "当前环境不支持隐私设置API");
         }
       }, 500);
     },
@@ -75,14 +76,32 @@ const _sfc_main = {
       }
     },
     // 选择头像
-    onChooseAvatar(e) {
-      common_vendor.index.__f__("log", "at pages/profile/edit.vue:130", "头像选择事件触发:", e);
+    async onChooseAvatar(e) {
+      common_vendor.index.__f__("log", "at pages/profile/edit.vue:131", "头像选择事件触发:", e);
       if (e && e.detail && e.detail.avatarUrl) {
         const tempFilePath = e.detail.avatarUrl;
-        common_vendor.index.__f__("log", "at pages/profile/edit.vue:134", "获取到头像路径:", tempFilePath);
+        common_vendor.index.__f__("log", "at pages/profile/edit.vue:135", "获取到头像路径:", tempFilePath);
         this.editUserInfo.avatar = tempFilePath;
+        if (utils_util.isLocalTempFile(tempFilePath)) {
+          try {
+            common_vendor.index.showLoading({ title: "上传中..." });
+            const ossUrl = await this.uploadAvatarFile(tempFilePath);
+            this.editUserInfo.avatar = ossUrl;
+          } catch (uploadError) {
+            common_vendor.index.__f__("error", "at pages/profile/edit.vue:145", "头像上传失败:", uploadError);
+            if (uploadError.message && uploadError.message.includes("登录已过期")) {
+              return;
+            }
+            common_vendor.index.showToast({
+              title: uploadError.message || "头像上传失败",
+              icon: "none"
+            });
+          } finally {
+            common_vendor.index.hideLoading();
+          }
+        }
       } else {
-        common_vendor.index.__f__("log", "at pages/profile/edit.vue:148", "头像选择事件数据异常:", e);
+        common_vendor.index.__f__("log", "at pages/profile/edit.vue:158", "头像选择事件数据异常:", e);
       }
     },
     // 昵称输入事件
@@ -106,12 +125,12 @@ const _sfc_main = {
     },
     // 获取微信昵称
     getWeChatNickname() {
-      common_vendor.index.__f__("log", "at pages/profile/edit.vue:178", "点击获取微信昵称");
+      common_vendor.index.__f__("log", "at pages/profile/edit.vue:187", "点击获取微信昵称");
       if (typeof common_vendor.index.getUserNickname === "function") {
-        common_vendor.index.__f__("log", "at pages/profile/edit.vue:182", "尝试使用 getUserNickname");
+        common_vendor.index.__f__("log", "at pages/profile/edit.vue:191", "尝试使用 getUserNickname");
         common_vendor.index.getUserNickname({
           success: (res) => {
-            common_vendor.index.__f__("log", "at pages/profile/edit.vue:185", "getUserNickname 成功:", res);
+            common_vendor.index.__f__("log", "at pages/profile/edit.vue:194", "getUserNickname 成功:", res);
             if (res.nickName) {
               this.userInfo.nickname = res.nickName;
               common_vendor.index.showToast({
@@ -121,12 +140,12 @@ const _sfc_main = {
             }
           },
           fail: (err) => {
-            common_vendor.index.__f__("log", "at pages/profile/edit.vue:195", "getUserNickname 失败:", err);
+            common_vendor.index.__f__("log", "at pages/profile/edit.vue:204", "getUserNickname 失败:", err);
             this.showNicknameInputModal();
           }
         });
       } else {
-        common_vendor.index.__f__("log", "at pages/profile/edit.vue:200", "getUserNickname 不可用，使用备选方案");
+        common_vendor.index.__f__("log", "at pages/profile/edit.vue:209", "getUserNickname 不可用，使用备选方案");
         this.showNicknameInputModal();
       }
     },
@@ -161,11 +180,11 @@ const _sfc_main = {
         });
         const avatarUrl = this.editUserInfo.avatar;
         let finalAvatarUrl = avatarUrl;
-        if (avatarUrl && (avatarUrl.indexOf("//tmp") > 0 || avatarUrl.indexOf("http://tmp") >= 0)) {
+        if (avatarUrl && utils_util.isLocalTempFile(avatarUrl)) {
           try {
             finalAvatarUrl = await this.uploadAvatarFile(avatarUrl);
           } catch (uploadError) {
-            common_vendor.index.__f__("error", "at pages/profile/edit.vue:246", "头像上传失败:", uploadError);
+            common_vendor.index.__f__("error", "at pages/profile/edit.vue:255", "头像上传失败:", uploadError);
             if (uploadError.message && uploadError.message.includes("登录已过期")) {
               common_vendor.index.hideLoading();
               return;
@@ -181,7 +200,7 @@ const _sfc_main = {
         try {
           updatedUser = await utils_api.api.auth.updateUserInfo(saveData);
         } catch (updateError) {
-          common_vendor.index.__f__("error", "at pages/profile/edit.vue:268", "更新用户信息失败:", updateError);
+          common_vendor.index.__f__("error", "at pages/profile/edit.vue:277", "更新用户信息失败:", updateError);
           if (updateError.message && updateError.message.includes("登录已过期")) {
             common_vendor.index.hideLoading();
             return;
@@ -203,7 +222,7 @@ const _sfc_main = {
           common_vendor.index.navigateBack();
         }, 1500);
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/profile/edit.vue:298", "保存失败:", error);
+        common_vendor.index.__f__("error", "at pages/profile/edit.vue:307", "保存失败:", error);
         common_vendor.index.hideLoading();
         if (error.message && error.message.includes("登录已过期")) {
           return;
@@ -221,7 +240,7 @@ const _sfc_main = {
         const result = await utils_api.api.images.upload(filePath, { contentCheck: true });
         return result.imageUrl;
       } catch (error) {
-        common_vendor.index.__f__("error", "at pages/profile/edit.vue:318", "头像上传失败:", error);
+        common_vendor.index.__f__("error", "at pages/profile/edit.vue:327", "头像上传失败:", error);
         throw error;
       }
     }

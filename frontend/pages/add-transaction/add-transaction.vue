@@ -76,10 +76,29 @@
     <!-- 支付+金额 / 备注+单据 -->
     <view class="input-panel">
       <view class="input-bar input-bar-top">
-        <view v-if="transactionType === 0" class="input-bar-payment">
-          <app-icon name="shop" :size="18" color="#999999" />
-          <text v-if="currentSpendingChannel" class="input-bar-meta-text">{{ currentSpendingChannel.name }}</text>
-          <text class="input-bar-meta-btn" @click="openChannelDialog">修改</text>
+        <view
+          v-if="transactionType === 0"
+          class="channel-bar-chip"
+          :class="{ 'channel-bar-chip--unset': isChannelUnset }"
+          @click="openChannelDialog"
+        >
+          <view
+            v-if="currentSpendingChannel && !isChannelUnset"
+            class="channel-bar-icon"
+            :style="{ backgroundColor: channelIconBg(currentSpendingChannel) }"
+          >
+            <text class="channel-bar-emoji">{{ currentSpendingChannel.icon }}</text>
+          </view>
+          <view v-else class="channel-bar-icon channel-bar-icon--hint">
+            <app-icon name="shop" :size="16" color="#F5A623" />
+          </view>
+          <text v-if="isChannelUnset" class="channel-bar-text">在哪买的</text>
+          <view v-else class="channel-bar-text channel-bar-text--selected">
+            <text>在</text>
+            <text class="channel-bar-name">{{ currentSpendingChannel.name }}</text>
+            <text>买的</text>
+          </view>
+          <text class="channel-bar-arrow">▼</text>
         </view>
         <view class="input-bar-amount">
           <text class="amount-expression">{{ amountExpression || '0' }}</text>
@@ -473,7 +492,7 @@
         <scroll-view scroll-y class="category-drawer-scroll" :show-scrollbar="false">
           <view class="category-group">
             <view class="category-group-header">
-              <text class="group-header-name">选择消费渠道</text>
+              <text class="group-header-name">在哪买的</text>
             </view>
             <view class="category-group-children">
               <view
@@ -483,13 +502,12 @@
                 :class="{ selected: tempSpendingChannel === channel.value }"
                 @tap.stop="tempSpendingChannel = channel.value"
               >
-                <view class="grid-icon-circle">
-                  <app-icon
-                    :icon="channel.icon"
-                    :category-name="channel.name"
-                    :size="22"
-                    :color="tempSpendingChannel === channel.value ? '#333333' : channel.color"
-                  />
+                <view
+                  class="grid-icon-circle channel-picker-icon"
+                  :class="{ 'channel-picker-icon--selected': tempSpendingChannel === channel.value }"
+                  :style="getChannelPickerIconStyle(channel, tempSpendingChannel === channel.value)"
+                >
+                  <text class="channel-picker-emoji">{{ channel.icon }}</text>
                 </view>
                 <text class="grid-category-name">{{ channel.name }}</text>
               </view>
@@ -701,6 +719,9 @@ export default {
     },
     currentSpendingChannel() {
       return this.spendingChannels.find(c => c.value === this.selectedSpendingChannel) || this.spendingChannels[0] || null;
+    },
+    isChannelUnset() {
+      return !this.selectedSpendingChannel || this.selectedSpendingChannel === 0;
     },
     showAllocationBar() {
       const book = this.displayAccountBook;
@@ -1063,10 +1084,8 @@ export default {
       }
 
       const lastChannel = getLastSpendingChannel(this.transactionType, accountBookId);
-      if (lastChannel != null && this.spendingChannels.some(c => c.value === lastChannel)) {
+      if (lastChannel != null && lastChannel !== 0 && this.spendingChannels.some(c => c.value === lastChannel)) {
         this.selectedSpendingChannel = lastChannel;
-      } else if (this.spendingChannels.length > 0) {
-        this.selectedSpendingChannel = this.spendingChannels[0].value;
       } else {
         this.selectedSpendingChannel = 0;
       }
@@ -1439,6 +1458,22 @@ export default {
       this.selectedSpendingChannel = value;
     },
 
+    channelIconBg(channel) {
+      const color = (channel && channel.color) || '#F5A623';
+      if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
+        return `${color}22`;
+      }
+      return '#FFF6E8';
+    },
+
+    getChannelPickerIconStyle(channel, selected) {
+      const color = (channel && channel.color) || '#F5A623';
+      if (selected) {
+        return { backgroundColor: color };
+      }
+      return { backgroundColor: this.channelIconBg(channel) };
+    },
+
     openChannelDialog() {
       this.tempSpendingChannel = this.selectedSpendingChannel;
       this.showChannelDialog = true;
@@ -1450,6 +1485,12 @@ export default {
 
     confirmSpendingChannel() {
       this.selectedSpendingChannel = this.tempSpendingChannel;
+      const book = this.displayAccountBook;
+      if (book && book.id != null) {
+        recordLastTransactionPrefs(this.transactionType, book.id, {
+          spendingChannel: this.selectedSpendingChannel
+        });
+      }
       this.closeChannelDialog();
     },
     
@@ -2363,6 +2404,86 @@ export default {
       color: #333333;
       font-weight: 600;
     }
+  }
+}
+
+.channel-bar-chip {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 48%;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  background: #FFF8ED;
+  border: 1rpx solid #FFE0A8;
+  box-sizing: border-box;
+
+  &--unset {
+    background: #FFFBF5;
+    border-style: dashed;
+    border-color: #F5A623;
+  }
+
+  .channel-bar-icon {
+    width: 40rpx;
+    height: 40rpx;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    &--hint {
+      background: #FFF0D6;
+    }
+  }
+
+  .channel-bar-emoji {
+    font-size: 24rpx;
+    line-height: 1;
+  }
+
+  .channel-bar-text {
+    font-size: 26rpx;
+    color: #333333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+
+    &--selected {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      white-space: nowrap;
+    }
+  }
+
+  .channel-bar-name {
+    color: #2064f5a8;
+    font-weight: 600;
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 160rpx;
+  }
+
+  .channel-bar-arrow {
+    font-size: 18rpx;
+    color: #F5A623;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+}
+
+.channel-picker-icon {
+  .channel-picker-emoji {
+    font-size: 40rpx;
+    line-height: 1;
   }
 }
 

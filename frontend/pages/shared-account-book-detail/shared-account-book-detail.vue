@@ -242,7 +242,7 @@
                 <text class="category-name">{{ item.categoryName }}</text>
                 <text v-if="item.remark" class="transaction-remark">{{ item.remark }}</text>
                 <view class="transaction-meta">
-                  <text class="transaction-date">{{ formatDate(item.transactionDate, 'MM-DD') }}</text>
+                  <text class="transaction-date">{{ formatDate(item.transactionDate, 'list-date') }}</text>
                   <text v-if="accountBookType === 1 && item.userName" class="transaction-creator">{{ item.userName }}</text>
                 </view>
               </view>
