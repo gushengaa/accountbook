@@ -1,7 +1,0 @@
-{
-  "component": true,
-  "usingComponents": {
-    "transaction-detail": "../transaction-detail/transaction-detail",
-    "app-icon": "../app-icon/app-icon"
-  }
-}

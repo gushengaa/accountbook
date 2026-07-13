@@ -229,6 +229,10 @@ public class TransactionService : ITransactionService
         if (accountBook.Type == 1 && !accountBook.Members.Any(m => m.UserId == userId))
             throw new Exception("无权限访问该一起账本");
 
+        var cached = await _cacheHelper.GetAccountBookTransactionsAsync(accountBookId);
+        if (cached != null)
+            return cached;
+
         var result = await _context.Transactions
             .Where(t => t.AccountBookId == accountBookId)
             .Include(t => t.Category)
@@ -268,6 +272,7 @@ public class TransactionService : ITransactionService
         await FillSpendingChannelNamesAsync(result);
         await LoadImagesForTransactionsAsync(result);
         await LoadAllocationsForTransactionsAsync(result);
+        await _cacheHelper.SetAccountBookTransactionsAsync(accountBookId, result);
         return result;
     }
 
@@ -287,6 +292,12 @@ public class TransactionService : ITransactionService
 
         if (accountBook.Type == 1 && !accountBook.Members.Any(m => m.UserId == userId))
             throw new Exception("无权限访问该一起账本");
+
+        var startKey = ToCacheDateKey(startDate);
+        var endKey = ToCacheDateKey(endDate);
+        var rangeCached = await _cacheHelper.GetDateRangeTransactionsAsync(accountBookId, startKey, endKey);
+        if (rangeCached != null)
+            return rangeCached;
 
         var result = await _context.Transactions
             .Where(t => t.AccountBookId == accountBookId &&
@@ -329,6 +340,7 @@ public class TransactionService : ITransactionService
         await FillSpendingChannelNamesAsync(result);
         await LoadImagesForTransactionsAsync(result);
         await LoadAllocationsForTransactionsAsync(result);
+        await _cacheHelper.SetDateRangeTransactionsAsync(accountBookId, startKey, endKey, result);
         return result;
     }
 
@@ -554,6 +566,13 @@ public class TransactionService : ITransactionService
         if (month < 1 || month > 12)
             throw new ArgumentException("月份无效");
 
+        var cachedBudget = await _cacheHelper.GetPersonalBudgetAsync(userId, year, month);
+        if (cachedBudget != null &&
+            (personalAccountBookId == null || cachedBudget.PersonalAccountBookId == personalAccountBookId))
+        {
+            return cachedBudget;
+        }
+
         var personalBook = await ResolvePersonalAccountBookAsync(userId, personalAccountBookId);
         var chinaTz = GetChinaTimeZone();
         var startLocal = new DateTime(year, month, 1);
@@ -621,6 +640,7 @@ public class TransactionService : ITransactionService
             TotalPersonalIncome = totalIncome
         };
 
+        await _cacheHelper.SetPersonalBudgetAsync(userId, year, month, overview);
         return overview;
     }
 
@@ -966,7 +986,7 @@ public class TransactionService : ITransactionService
         _context.Transactions.Add(transaction);
         await _context.SaveChangesAsync();
 
-        await InvalidateTransactionCachesAsync(request.AccountBookId, userId);
+        await InvalidateTransactionCachesAsync(accountBook, transactionDate);
 
         // 保存图片
         if (request.ImageUrls != null && request.ImageUrls.Any())
@@ -1070,11 +1090,68 @@ public class TransactionService : ITransactionService
         };
     }
 
-    private async Task InvalidateTransactionCachesAsync(int accountBookId, int userId)
+    private async Task InvalidateTransactionCachesAsync(
+        AccountBook.Shared.Models.AccountBook accountBook,
+        DateTime? transactionDate = null)
     {
-        await _cacheHelper.InvalidateAccountBookAsync(accountBookId);
-        await _cacheHelper.InvalidateUserOverviewAsync(userId);
+        var extraRanges = BuildInvalidationDateRanges(
+            transactionDate,
+            accountBook.StartDate,
+            accountBook.EndDate).ToList();
+
+        await _cacheHelper.InvalidateAccountBookAsync(accountBook.Id, extraRanges);
+
+        var userIds = accountBook.Type == 0
+            ? new[] { accountBook.UserId }
+            : accountBook.Members.Select(m => m.UserId);
+
+        foreach (var uid in userIds.Distinct())
+        {
+            await _cacheHelper.InvalidateUserOverviewAsync(uid);
+            await _cacheHelper.InvalidatePersonalBudgetAsync(uid);
+        }
     }
+
+    private static IEnumerable<(string Start, string End)> BuildInvalidationDateRanges(
+        DateTime? transactionDate,
+        DateTime? bookStartDate,
+        DateTime? bookEndDate)
+    {
+        var ranges = new HashSet<(string, string)>();
+        var chinaTz = GetChinaTimeZone();
+
+        void AddMonth(DateTime localDate)
+        {
+            var start = new DateTime(localDate.Year, localDate.Month, 1);
+            var end = start.AddMonths(1).AddDays(-1);
+            ranges.Add((start.ToString("yyyy-MM-dd"), end.ToString("yyyy-MM-dd")));
+        }
+
+        DateTime localRef;
+        if (transactionDate.HasValue)
+        {
+            var utc = transactionDate.Value.Kind == DateTimeKind.Utc
+                ? transactionDate.Value
+                : DateTime.SpecifyKind(transactionDate.Value, DateTimeKind.Utc);
+            localRef = TimeZoneInfo.ConvertTimeFromUtc(utc, chinaTz);
+        }
+        else
+        {
+            localRef = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, chinaTz);
+        }
+
+        AddMonth(localRef);
+
+        if (bookStartDate.HasValue && bookEndDate.HasValue)
+        {
+            ranges.Add((ToCacheDateKey(bookStartDate.Value), ToCacheDateKey(bookEndDate.Value)));
+        }
+
+        return ranges;
+    }
+
+    private static string ToCacheDateKey(DateTime date)
+        => date.ToString("yyyy-MM-dd");
 
     public async Task<TransactionDto?> UpdateTransactionAsync(int id, int userId, UpdateTransactionRequest request)
     {
@@ -1172,7 +1249,7 @@ public class TransactionService : ITransactionService
         }
 
         await _context.SaveChangesAsync();
-        await InvalidateTransactionCachesAsync(transaction.AccountBookId, userId);
+        await InvalidateTransactionCachesAsync(transaction.AccountBook, transaction.TransactionDate);
 
         // 获取图片列表
         var images = await _context.TransactionImages
@@ -1248,10 +1325,11 @@ public class TransactionService : ITransactionService
         if (transaction.AccountBook.Type == 1 && !transaction.AccountBook.Members.Any(m => m.UserId == userId))
             return false;
 
-        var accountBookId = transaction.AccountBookId;
+        var accountBook = transaction.AccountBook;
+        var transactionDate = transaction.TransactionDate;
         _context.Transactions.Remove(transaction);
         await _context.SaveChangesAsync();
-        await InvalidateTransactionCachesAsync(accountBookId, userId);
+        await InvalidateTransactionCachesAsync(accountBook, transactionDate);
         return true;
     }
 }

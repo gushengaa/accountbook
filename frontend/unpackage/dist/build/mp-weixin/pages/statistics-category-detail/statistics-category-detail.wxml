@@ -1,1 +1,0 @@
-<view class="page-container data-v-cac25c36"><category-transactions-panel wx:if="{{a}}" class="data-v-cac25c36" u-i="cac25c36-0" bind:__l="__l" u-p="{{a}}"/></view>

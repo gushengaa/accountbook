@@ -1,8 +1,0 @@
-{
-  "navigationBarTitleText": "分类明细",
-  "navigationBarBackgroundColor": "#F5A623",
-  "navigationBarTextStyle": "white",
-  "usingComponents": {
-    "category-transactions-panel": "../../components/category-transactions-panel/category-transactions-panel"
-  }
-}

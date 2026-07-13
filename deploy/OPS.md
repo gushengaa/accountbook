@@ -68,6 +68,17 @@ git pull                    # 若使用 Git
 bash deploy/deploy.sh
 ```
 
+### 在本机 PowerShell 上传代码
+# 上传整个项目到服务器（会覆盖 /opt/accountbook 下对应文件）
+scp -r "f:\AI记账\*" ubuntu@124.222.233.110:/opt/accountbook/
+若只想传后端（改 API 时更快）：
+
+scp -r "f:\AI记账\src" ubuntu@124.222.233.110:/opt/accountbook/
+scp -r "f:\AI记账\deploy" ubuntu@124.222.233.110:/opt/accountbook/
+scp "f:\AI记账\docker-compose.yml" ubuntu@124.222.233.110:/opt/accountbook/
+scp "f:\AI记账\Dockerfile" ubuntu@124.222.233.110:/opt/accountbook/
+注意：不要覆盖服务器上的 .env（里面有密码、密钥）。首次部署才需要配 .env。
+
 脚本会：构建镜像 → 启动容器 → 本机健康检查。
 
 ### 手动构建

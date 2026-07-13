@@ -1,9 +1,0 @@
-{
-  "navigationBarTitleText": "账本",
-  "navigationBarBackgroundColor": "#F5A623",
-  "navigationBarTextStyle": "white",
-  "usingComponents": {
-    "app-icon": "../../components/app-icon/app-icon",
-    "app-tab-bar": "../../components/app-tab-bar/app-tab-bar"
-  }
-}
